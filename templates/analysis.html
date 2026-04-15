@@ -92,7 +92,6 @@
             const h = videoElement.videoHeight;
             const w = videoElement.videoWidth;
 
-            // DAHA HASSAS MATEMATİKSEL ANALİZ
             const y_yuk = Math.sqrt(Math.pow((lm[10].x - lm[152].x)*w, 2) + Math.pow((lm[10].y - lm[152].y)*h, 2));
             const y_gen = Math.sqrt(Math.pow((lm[234].x - lm[454].x)*w, 2) + Math.pow((lm[234].y - lm[454].y)*h, 2));
             const oran = y_yuk / y_gen;
@@ -100,30 +99,29 @@
             let yuz, modeller, cerceveler, renk;
             const c = user.cinsiyet;
 
-            // ARALIKLARI DARALTTIK - HERKES OVAL ÇIKMAYACAK
-            if (oran > 1.35) {
+            // --- GÜNCELLENMİŞ HASSAS EŞİKLER ---
+            if (oran > 1.40) { 
                 yuz = "UZUN / OBLONG";
-                modeller = "Geniş Wayfarer, Büyük Kare, Dikdörtgen";
-                cerceveler = "Yüzün boyunu dengeleyen, derinliği olan kalın ve geniş çerçeveler.";
-                renk = (c === "Erkek" ? "Mat Siyah / Füme" : "Rose Gold / Havana");
-            } else if (oran > 1.12 && oran <= 1.35) {
+                modeller = "Geniş gövdeli Wayfarer, Büyük Kare, Dikdörtgen Modeller";
+                cerceveler = "Yüzün dikey hattını kıracak geniş ve kalın saplı tasarımlar.";
+                renk = (c === "Erkek" ? "Mat Siyah / Füme" : "Koyu Havana / Bordo");
+            } else if (oran > 1.22 && oran <= 1.40) { 
                 yuz = "OVAL (DENGELİ)";
                 modeller = "Aviator, Retro Yuvarlak, Cat-Eye (Kedi Gözü)";
-                cerceveler = "Hemen hemen her form uyar. Yüz hatlarını bozmayan orta genişlikte modeller.";
-                renk = (c === "Erkek" ? "Koyu Kahve / Lacivert" : "Altın / Şeffaf Nude");
-            } else if (oran > 0.98 && oran <= 1.12) {
-                yuz = "YUVARLAK";
-                modeller = "Keskin Köşeli Dikdörtgen, Retro Kare, Geometrik";
-                cerceveler = "Yüzü daha ince ve uzun göstermek için köşeli, zıt konturlu çerçeveler.";
-                renk = (c === "Erkek" ? "Antrasit / Siyah" : "Bordo / Koyu Yeşil");
-            } else {
-                yuz = "KARE / KALP / ELMAS";
-                modeller = "Panto (Tam Yuvarlak), Oval, Çerçevesiz Alt Modeller";
-                cerceveler = "Keskin hatları yumuşatacak kavisli, ince ve hafif tasarımlar.";
-                renk = (c === "Erkek" ? "Gümüş / Fırçalanmış Metal" : "Pastel Tonlar / Açık Altın");
+                cerceveler = "Hemen hemen her form uyar. Yüz hatlarını bozmayan orta ölçekli çerçeveler.";
+                renk = (c === "Erkek" ? "Lacivert / Klasik Siyah" : "Altın / Şeffaf Nude");
+            } else if (oran > 1.08 && oran <= 1.22) { 
+                yuz = "YUVARLAK / DOLGUN";
+                modeller = "Keskin Köşeli Dikdörtgen, Retro Kare, Geometrik Formlar";
+                cerceveler = "Yüzü daha kemikli ve ince gösterecek köşeli konturlu çerçeveler.";
+                renk = (c === "Erkek" ? "Antrasit / Koyu Yeşil" : "Klasik Kaplumbağa Deseni / Bordo");
+            } else { 
+                yuz = "KARE / KALP HATLARI";
+                modeller = "Panto (Tam Yuvarlak), Oval, Kenarları yumuşatılmış modeller";
+                cerceveler = "Sert hatları (çene ve alın) yumuşatacak kavisli, ince ve hafif tasarımlar.";
+                renk = (c === "Erkek" ? "Gümüş Metal / Gunmetal" : "Açık Altın / Pastel Tonlar");
             }
 
-            // EKRANA YAZDIRMA
             document.getElementById('res-yuz').innerText = yuz;
             document.getElementById('res-gozluk').innerText = modeller;
             document.getElementById('res-cerceve').innerText = cerceveler;
@@ -132,7 +130,6 @@
             loading.style.display = "none";
             resultBox.style.display = "block";
 
-            // KAYIT İŞLEMİ
             fetch('/save_result', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
