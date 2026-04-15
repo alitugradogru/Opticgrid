@@ -9,16 +9,16 @@
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
         :root { --gold: #D4AF37; --dark: #121212; }
-        body { background: var(--dark); color: #e0e0e0; font-family: 'Poppins', sans-serif; margin: 0; padding-bottom: 50px; }
+        body { background: var(--dark); color: #e0e0e0; font-family: 'Poppins', sans-serif; margin: 0; padding-bottom: 50px; text-align: center; }
         .vogue-header { font-family: 'Playfair Display', serif; font-size: 2.8rem; color: var(--gold); letter-spacing: 4px; margin: 20px 0 5px; text-transform: uppercase; }
-        .container { position: relative; width: 90%; max-width: 450px; margin: 0 auto; border: 1px solid var(--gold); border-radius: 20px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .container { position: relative; width: 92%; max-width: 450px; margin: 0 auto; border: 1px solid var(--gold); border-radius: 20px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5); background: #000; }
         video { width: 100%; display: block; transform: scaleX(-1); }
-        .btn-analyze { background: var(--gold); color: #000; border: none; padding: 18px 50px; font-size: 1.1rem; font-weight: 600; cursor: pointer; border-radius: 40px; margin: 25px 0; transition: 0.4s; text-transform: uppercase; }
-        .btn-analyze:disabled { background: #444; color: #888; }
-        #result-box { display: none; width: 85%; max-width: 500px; margin: 20px auto; padding: 25px; background: #1e1e1e; border-radius: 15px; border: 1px solid #333; text-align: left; animation: fadeIn 0.8s ease; }
+        .btn-analyze { background: var(--gold); color: #000; border: none; padding: 18px 50px; font-size: 1.1rem; font-weight: 600; cursor: pointer; border-radius: 40px; margin: 25px 0; transition: 0.4s; text-transform: uppercase; letter-spacing: 1px; }
+        .btn-analyze:disabled { background: #444; color: #888; cursor: not-allowed; }
+        #result-box { display: none; width: 85%; max-width: 500px; margin: 20px auto; padding: 25px; background: #1e1e1e; border-radius: 15px; border: 1px solid #333; text-align: left; animation: fadeIn 0.8s ease; border-left: 5px solid var(--gold); }
         .res-title { color: var(--gold); font-size: 1.4rem; border-bottom: 1px solid #333; padding-bottom: 10px; margin-bottom: 15px; font-family: 'Playfair Display', serif; }
         .res-item { margin-bottom: 15px; line-height: 1.6; }
-        .res-label { font-weight: 600; color: var(--gold); display: block; font-size: 0.85rem; text-transform: uppercase; }
+        .res-label { font-weight: 600; color: var(--gold); display: block; font-size: 0.85rem; text-transform: uppercase; margin-bottom: 2px; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         .loading-spinner { display: none; margin: 10px auto; border: 3px solid rgba(212,175,55,0.1); border-left-color: var(--gold); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
@@ -27,7 +27,7 @@
 <body>
 
     <div class="vogue-header">OpticGrid</div>
-    <p style="font-style: italic; letter-spacing: 1px; margin-bottom: 20px;">Personalized Eyewear Analysis</p>
+    <p style="font-style: italic; letter-spacing: 1px; margin-bottom: 20px; color: #888;">Modern Optik | AI Analysis Edition</p>
 
     <div class="container">
         <video id="input_video" playsinline></video>
@@ -40,19 +40,19 @@
         <div class="res-title">Analiz Sonuçlarınız</div>
         <div class="res-item">
             <span class="res-label">Yüz Tipiniz</span>
-            <span id="res-yuz" style="font-size: 1.2rem; font-weight: 600;"></span>
+            <span id="res-yuz" style="font-size: 1.2rem; font-weight: 600; color: #fff;"></span>
         </div>
         <div class="res-item">
-            <span class="res-label">Size Yakışacak Gözlük Modelleri</span>
-            <span id="res-gozluk"></span>
+            <span class="res-label">Önerilen Gözlük Modelleri</span>
+            <span id="res-gozluk" style="color: #bbb;"></span>
         </div>
         <div class="res-item">
             <span class="res-label">İdeal Çerçeve Formları</span>
-            <span id="res-cerceve"></span>
+            <span id="res-cerceve" style="color: #bbb;"></span>
         </div>
         <div class="res-item">
-            <span class="res-label">Modern Optik Renk Önerisi</span>
-            <span id="res-renk"></span>
+            <span class="res-label">Renk ve Stil Notu</span>
+            <span id="res-renk" style="color: #bbb;"></span>
         </div>
     </div>
 
@@ -68,7 +68,7 @@
             return `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4/${file}`;
         }});
 
-        faceMesh.setOptions({ maxNumFaces: 1, refineLandmarks: true, minDetectionConfidence: 0.5 });
+        faceMesh.setOptions({ maxNumFaces: 1, refineLandmarks: true, minDetectionConfidence: 0.6 });
 
         let lastResults = null;
         faceMesh.onResults((results) => {
@@ -80,7 +80,7 @@
             onFrame: async () => { await faceMesh.send({image: videoElement}); },
             width: 640, height: 480
         });
-        camera.start().catch(() => alert("Kamera izni gerekli!"));
+        camera.start().catch(() => alert("Kamera erişimi reddedildi!"));
 
         startBtn.addEventListener('click', () => {
             if (!lastResults?.multiFaceLandmarks) return;
@@ -92,6 +92,7 @@
             const h = videoElement.videoHeight;
             const w = videoElement.videoWidth;
 
+            // DAHA HASSAS MATEMATİKSEL ANALİZ
             const y_yuk = Math.sqrt(Math.pow((lm[10].x - lm[152].x)*w, 2) + Math.pow((lm[10].y - lm[152].y)*h, 2));
             const y_gen = Math.sqrt(Math.pow((lm[234].x - lm[454].x)*w, 2) + Math.pow((lm[234].y - lm[454].y)*h, 2));
             const oran = y_yuk / y_gen;
@@ -99,24 +100,30 @@
             let yuz, modeller, cerceveler, renk;
             const c = user.cinsiyet;
 
-            if (oran > 1.25) {
-                yuz = "UZUN / OVAL";
-                modeller = "Wayfarer, Büyük Kare, Aviator (Pilot)";
-                cerceveler = "Geniş gövdeli, yüzü enine dengeleyen kalın çerçeveler.";
-                renk = (c === "Erkek" ? "Mat Siyah veya Koyu Kahve" : "Rose Gold veya Şampanya Tonları");
-            } else if (oran > 0.95 && oran < 1.12) {
+            // ARALIKLARI DARALTTIK - HERKES OVAL ÇIKMAYACAK
+            if (oran > 1.35) {
+                yuz = "UZUN / OBLONG";
+                modeller = "Geniş Wayfarer, Büyük Kare, Dikdörtgen";
+                cerceveler = "Yüzün boyunu dengeleyen, derinliği olan kalın ve geniş çerçeveler.";
+                renk = (c === "Erkek" ? "Mat Siyah / Füme" : "Rose Gold / Havana");
+            } else if (oran > 1.12 && oran <= 1.35) {
+                yuz = "OVAL (DENGELİ)";
+                modeller = "Aviator, Retro Yuvarlak, Cat-Eye (Kedi Gözü)";
+                cerceveler = "Hemen hemen her form uyar. Yüz hatlarını bozmayan orta genişlikte modeller.";
+                renk = (c === "Erkek" ? "Koyu Kahve / Lacivert" : "Altın / Şeffaf Nude");
+            } else if (oran > 0.98 && oran <= 1.12) {
                 yuz = "YUVARLAK";
-                modeller = "Dikdörtgen, Keskin Köşeli, Retro Kare";
-                cerceveler = "Yüzü daha ince ve uzun gösterecek köşeli, ince metalik veya asetat çerçeveler.";
-                renk = (c === "Erkek" ? "Lacivert veya Antrasit" : "Bordo veya Klasik Kaplumbağa Deseni");
+                modeller = "Keskin Köşeli Dikdörtgen, Retro Kare, Geometrik";
+                cerceveler = "Yüzü daha ince ve uzun göstermek için köşeli, zıt konturlu çerçeveler.";
+                renk = (c === "Erkek" ? "Antrasit / Siyah" : "Bordo / Koyu Yeşil");
             } else {
                 yuz = "KARE / KALP / ELMAS";
-                modeller = "Yuvarlak, Oval, Cat-Eye (Kedi Gözü)";
-                cerceveler = "Sert hatları yumuşatan kavisli kenarlar ve alt kısmı çerçevesiz modeller.";
-                renk = (c === "Erkek" ? "Gümüş veya Fırçalanmış Metal" : "Altın veya Pastel Şeffaf Tonlar");
+                modeller = "Panto (Tam Yuvarlak), Oval, Çerçevesiz Alt Modeller";
+                cerceveler = "Keskin hatları yumuşatacak kavisli, ince ve hafif tasarımlar.";
+                renk = (c === "Erkek" ? "Gümüş / Fırçalanmış Metal" : "Pastel Tonlar / Açık Altın");
             }
 
-            // SONUÇLARI ANINDA YAZDIR (Takılma olmaz)
+            // EKRANA YAZDIRMA
             document.getElementById('res-yuz').innerText = yuz;
             document.getElementById('res-gozluk').innerText = modeller;
             document.getElementById('res-cerceve').innerText = cerceveler;
@@ -125,12 +132,12 @@
             loading.style.display = "none";
             resultBox.style.display = "block";
 
-            // Kayıt işlemini arka planda sessizce yap (Kullanıcıyı bekletme)
+            // KAYIT İŞLEMİ
             fetch('/save_result', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ ...user, yuz_tipi: yuz, oneri: modeller + " - " + renk })
-            }).catch(e => console.log("DB Kayıt Hatası"));
+                body: JSON.stringify({ ...user, yuz_tipi: yuz, oneri: modeller })
+            }).catch(e => console.log("Kayıt hatası"));
         });
     </script>
 </body>
