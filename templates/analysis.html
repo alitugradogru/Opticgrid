@@ -3,107 +3,129 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OpticGrid - Canlı Analiz</title>
+    <title>OpticGrid | AI Yüz Analizi</title>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital@1&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root { --gold: #D4AF37; --dark: #1a1a1a; }
+        body { background-color: var(--dark); color: white; font-family: 'Poppins', sans-serif; margin: 0; overflow-x: hidden; text-align: center; }
+        .vogue-header { font-family: 'Playfair Display', serif; font-size: 2.5rem; letter-spacing: 5px; margin-top: 30px; text-transform: uppercase; color: var(--gold); }
+        .container { position: relative; width: 90%; max-width: 500px; margin: 20px auto; border: 2px solid var(--gold); border-radius: 15px; overflow: hidden; background: #000; }
+        video { width: 100%; display: block; transform: scaleX(-1); }
+        canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; transform: scaleX(-1); }
+        .btn-analyze { background: var(--gold); color: black; border: none; padding: 15px 40px; font-size: 1rem; font-weight: 600; cursor: pointer; border-radius: 30px; margin: 20px; transition: 0.3s; }
+        .btn-analyze:disabled { background: #555; cursor: not-allowed; }
+        #result-box { display: none; padding: 20px; background: rgba(255,255,255,0.05); margin: 20px auto; width: 80%; border-radius: 10px; border-left: 5px solid var(--gold); }
+        .loading-spinner { display: none; margin: 10px auto; border: 4px solid rgba(255,255,255,0.1); border-left-color: var(--gold); border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
 </head>
-<body style="background-color: #fdf5e6; color: #5d4037; font-family: 'Segoe UI', sans-serif; text-align: center; padding: 20px; margin: 0;">
-    <div style="background: white; display: inline-block; padding: 30px; border-radius: 40px; box-shadow: 0 15px 35px rgba(0,0,0,0.05); max-width: 500px; width: 95%;">
-        
-        <div style="text-align: left; margin-bottom: 15px;">
-            <a href="/" style="color: #bc8f8f; text-decoration: none; font-weight: bold; font-size: 0.9em;">← Ana Sayfa</a>
-        </div>
+<body>
 
-        <h1 style="color: #bc8f8f; letter-spacing: 3px; text-transform: uppercase; margin-top: 0;">OpticGrid AI</h1>
-        
-        <div style="position: relative;">
-            <video id="video" width="100%" autoplay playsinline style="border-radius: 20px; background: #000; margin-bottom: 10px;"></video>
-            
-            <button onclick="toggleCamera()" style="position: absolute; top: 10px; right: 10px; background: rgba(255,255,255,0.8); border: none; padding: 10px; border-radius: 50%; cursor: pointer; box-shadow: 0 2px 10px rgba(0,0,0,0.2);">
-                🔄
-            </button>
-        </div>
-        
-        <canvas id="canvas" style="display:none;"></canvas>
+    <div class="vogue-header">OpticGrid</div>
+    <p style="font-style: italic; opacity: 0.8;">Cihaz Üstü Yapay Zeka Analizi</p>
 
-        <div id="status" style="margin: 15px; font-weight: 600; color: #bc8f8f;">Kamera Aktif</div>
+    <div class="container">
+        <video id="input_video"></video>
+        <canvas id="output_canvas"></canvas>
+    </div>
 
-        <div id="result-box" style="display: none; background: #fffcf5; padding: 20px; border-radius: 20px; border: 1px dashed #bc8f8f; text-align: left; margin-bottom: 20px;">
-            <h3 id="y_tipi" style="color: #8b4513; margin-top: 0;"></h3>
-            <p id="oneri_text"></p>
-        </div>
+    <div id="loading" class="loading-spinner"></div>
+    <button id="start-btn" class="btn-analyze">ANALİZ ET</button>
 
-        <button id="scan-btn" onclick="captureAndScan()" style="padding: 18px 30px; background: #bc8f8f; color: white; border: none; border-radius: 15px; cursor: pointer; font-weight: bold; width: 100%; font-size: 1.1em;">
-            HEMEN ANALİZ ET
-        </button>
-        
-        <button id="re-scan-btn" onclick="location.reload()" style="display: none; margin-top: 15px; padding: 12px; background: white; color: #bc8f8f; border: 1px solid #bc8f8f; border-radius: 12px; cursor: pointer; width: 100%;">
-            TEKRAR ANALİZ ET
-        </button>
+    <div id="result-box">
+        <h3 id="yuz-tipi" style="color: var(--gold); margin-bottom: 5px;"></h3>
+        <p id="oneri-metni" style="font-size: 0.9rem; line-height: 1.6;"></p>
     </div>
 
     <script>
-    const video = document.getElementById('video');
-    const canvas = document.getElementById('canvas');
-    let currentStream;
-    let useRearCamera = false; // Başlangıçta ön kamera (user)
+        const videoElement = document.getElementById('input_video');
+        const canvasElement = document.getElementById('output_canvas');
+        const canvasCtx = canvasElement.getContext('2d');
+        const startBtn = document.getElementById('start-btn');
+        const resultBox = document.getElementById('result-box');
+        const loading = document.getElementById('loading');
 
-    function startCamera() {
-        if (currentStream) {
-            currentStream.getTracks().forEach(track => track.stop());
-        }
-
-        const constraints = {
-            video: { facingMode: (useRearCamera ? "environment" : "user") }
+        // Kullanıcı verileri (Flask'tan geliyor)
+        const userDetails = {
+            ad: "{{ ad }}",
+            yas: "{{ yas }}",
+            cinsiyet: "{{ cinsiyet }}"
         };
 
-        navigator.mediaDevices.getUserMedia(constraints)
-            .then(stream => {
-                currentStream = stream;
-                video.srcObject = stream;
-            })
-            .catch(err => {
-                alert("Kamera hatası: " + err);
-            });
-    }
+        const faceMesh = new FaceMesh({locateFile: (file) => {
+            return `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`;
+        }});
 
-    function toggleCamera() {
-        useRearCamera = !useRearCamera;
-        startCamera();
-    }
+        faceMesh.setOptions({
+            maxNumFaces: 1,
+            refineLandmarks: true,
+            minDetectionConfidence: 0.5,
+            minTrackingConfidence: 0.5
+        });
 
-    function captureAndScan() {
-        document.getElementById('status').innerText = "AI Tarama Yapıyor...";
-        document.getElementById('scan-btn').style.display = "none";
-
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        canvas.getContext('2d').drawImage(video, 0, 0);
-        const imageData = canvas.toDataURL('image/jpeg');
-
-        fetch('/scan_web', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({
-                image: imageData,
-                ad: "{{ ad }}",
-                yas: "{{ yas }}",
-                cinsiyet: "{{ cinsiyet }}"
-            })
-        })
-        .then(res => res.json())
-        .then(data => {
-            if(data.error) { alert(data.error); location.reload(); }
-            else {
-                document.getElementById('status').innerText = "Analiz Tamamlandı!";
-                document.getElementById('result-box').style.display = "block";
-                document.getElementById('y_tipi').innerText = "FORM: " + data.yuz_tipi;
-                document.getElementById('oneri_text').innerText = data.oneri;
-                document.getElementById('re-scan-btn').style.display = "inline-block";
+        let lastResults = null;
+        faceMesh.onResults((results) => {
+            lastResults = results;
+            canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+            if (results.multiFaceLandmarks) {
+                // Burada istersen yüze çizim yapabilirsin (Vogue stili nokta çizimleri)
             }
         });
-    }
 
-    // İlk açılışta kamerayı başlat
-    startCamera();
+        const camera = new Camera(videoElement, {
+            onFrame: async () => { await faceMesh.send({image: videoElement}); },
+            width: 640, height: 480
+        });
+        camera.start();
+
+        startBtn.addEventListener('click', async () => {
+            if (!lastResults || !lastResults.multiFaceLandmarks) {
+                alert("Yüzünüz henüz algılanmadı, lütfen kameraya yaklaşın.");
+                return;
+            }
+
+            startBtn.disabled = true;
+            loading.style.display = "block";
+
+            const lm = lastResults.multiFaceLandmarks[0];
+            const h = videoElement.videoHeight;
+            const w = videoElement.videoWidth;
+
+            // MediaPipe JS Landmark Hesaplama
+            const top = lm[10]; const bottom = lm[152];
+            const left = lm[234]; const right = lm[454];
+
+            const y_yuk = Math.sqrt(Math.pow((top.x - bottom.x)*w, 2) + Math.pow((top.y - bottom.y)*h, 2));
+            const y_gen = Math.sqrt(Math.pow((left.x - right.x)*w, 2) + Math.pow((left.y - right.y)*h, 2));
+            const oran = y_yuk / y_gen;
+
+            let res, rnk, oneri;
+            const c = userDetails.cinsiyet;
+
+            if (oran > 1.25) {
+                res = "UZUN / OVAL"; rnk = (c === "Erkek" ? "Siyah" : "Rose Gold");
+            } else if (oran > 0.95 && oran < 1.10) {
+                res = "YUVARLAK"; rnk = (c === "Erkek" ? "Lacivert" : "Bordo");
+            } else {
+                res = "KARE / KALP"; rnk = (c === "Erkek" ? "Gümüş" : "Altın");
+            }
+            oneri = `Yüz tipiniz ${res}. Size en uygun çerçeveler ${rnk} tonlarındadır.`;
+
+            // Ekranda Göster
+            document.getElementById('yuz-tipi').innerText = res;
+            document.getElementById('oneri-metni').innerText = oneri;
+            resultBox.style.display = "block";
+            loading.style.display = "none";
+
+            // Veritabanına Kaydetmek için Render'a gönder (Hafif istek)
+            fetch('/save_result', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ ...userDetails, yuz_tipi: res, oneri: oneri })
+            });
+        });
     </script>
 </body>
 </html>
