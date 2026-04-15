@@ -4,7 +4,7 @@ import mediapipe as mp
 import numpy as np
 import sqlite3
 import base64
-import os  # Render portu için gerekli
+import os
 
 app = Flask(__name__)
 
@@ -21,10 +21,10 @@ def save_to_db(ad, yas, cinsiyet, yuz, oneri):
     except Exception as e:
         print(f"DB Hatasi: {e}")
 
-# --- AI MODELLERİ (Render için optimize edildi) ---
+# --- AI MODELLERİ (Global Tanımlama ile Hızlandırma) ---
 mp_face_mesh = mp.solutions.face_mesh
-# refine_landmarks=False yaparak işlemci yükünü %30 azalttık
-face_mesh = mp_face_mesh.FaceMesh(
+# Nesneyi burada bir kez oluşturuyoruz, her seferinde RAM harcamıyor
+face_mesh_engine = mp_face_mesh.FaceMesh(
     static_image_mode=True, 
     max_num_faces=1, 
     min_detection_confidence=0.5
@@ -56,7 +56,6 @@ def scan_web():
         if not data or 'image' not in data:
             return jsonify({'error': 'Resim verisi alınamadı'}), 400
 
-        # Base64 formatındaki resmi çöz
         img_str = data['image'].split(',')[1]
         img_data = base64.b64decode(img_str)
         nparr = np.frombuffer(img_data, np.uint8)
@@ -65,17 +64,16 @@ def scan_web():
         if frame is None:
             return jsonify({'error': 'Resim işlenemedi'}), 400
 
-        # Render RAM koruması: Görüntüyü işlemeden önce küçültüyoruz
-        frame = cv2.resize(frame, (480, 640)) 
-        
+        # Görüntü boyutunu daha da düşürdük (RAM Dostu)
+        frame = cv2.resize(frame, (320, 480)) 
         rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        results = face_mesh.process(rgb)
+        
+        # Hazır motoru kullanıyoruz
+        results = face_mesh_engine.process(rgb)
         
         if results.multi_face_landmarks:
             h, w, _ = frame.shape
             lm = results.multi_face_landmarks[0].landmark
-            
-            # Yüz tipi hesaplama (Öklid mesafesi)
             y_yuk = np.linalg.norm(np.array([lm[10].x*w, lm[10].y*h]) - np.array([lm[152].x*w, lm[152].y*h]))
             y_gen = np.linalg.norm(np.array([lm[234].x*w, lm[234].y*h]) - np.array([lm[454].x*w, lm[454].y*h]))
             oran = y_yuk / y_gen
@@ -96,10 +94,8 @@ def scan_web():
         
         return jsonify({'error': 'Yüz algılanamadı, lütfen ışığa dönün.'}), 400
     except Exception as e:
-        print(f"Hata: {e}")
-        return jsonify({'error': 'Sunucu hatası'}), 500
+        return jsonify({'error': 'Analiz yapılamadı'}), 500
 
 if __name__ == '__main__':
-    # Render için port dinamik olmalı
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
