@@ -3,56 +3,56 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OpticGrid | AI Analiz</title>
+    <title>OpticGrid | Pro AI Analysis</title>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4/face_mesh.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3/camera_utils.js" crossorigin="anonymous"></script>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
         :root { --gold: #D4AF37; --dark: #121212; }
         body { background: var(--dark); color: #e0e0e0; font-family: 'Poppins', sans-serif; margin: 0; padding-bottom: 50px; text-align: center; }
-        .vogue-header { font-family: 'Playfair Display', serif; font-size: 2.8rem; color: var(--gold); letter-spacing: 4px; margin: 20px 0 5px; text-transform: uppercase; }
+        .vogue-header { font-family: 'Playfair Display', serif; font-size: 2.5rem; color: var(--gold); letter-spacing: 4px; margin: 25px 0 5px; text-transform: uppercase; }
         .container { position: relative; width: 92%; max-width: 450px; margin: 0 auto; border: 1px solid var(--gold); border-radius: 20px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5); background: #000; }
         video { width: 100%; display: block; transform: scaleX(-1); }
-        .btn-analyze { background: var(--gold); color: #000; border: none; padding: 18px 50px; font-size: 1.1rem; font-weight: 600; cursor: pointer; border-radius: 40px; margin: 25px 0; transition: 0.4s; text-transform: uppercase; letter-spacing: 1px; }
+        .btn-analyze { background: var(--gold); color: #000; border: none; padding: 18px 50px; font-size: 1.1rem; font-weight: 600; cursor: pointer; border-radius: 40px; margin: 25px 0; transition: 0.4s; text-transform: uppercase; letter-spacing: 1.5px; }
         .btn-analyze:disabled { background: #444; color: #888; cursor: not-allowed; }
-        #result-box { display: none; width: 85%; max-width: 500px; margin: 20px auto; padding: 25px; background: #1e1e1e; border-radius: 15px; border: 1px solid #333; text-align: left; animation: fadeIn 0.8s ease; border-left: 5px solid var(--gold); }
-        .res-title { color: var(--gold); font-size: 1.4rem; border-bottom: 1px solid #333; padding-bottom: 10px; margin-bottom: 15px; font-family: 'Playfair Display', serif; }
-        .res-item { margin-bottom: 15px; line-height: 1.6; }
-        .res-label { font-weight: 600; color: var(--gold); display: block; font-size: 0.85rem; text-transform: uppercase; margin-bottom: 2px; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        .loading-spinner { display: none; margin: 10px auto; border: 3px solid rgba(212,175,55,0.1); border-left-color: var(--gold); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
+        #result-box { display: none; width: 88%; max-width: 500px; margin: 20px auto; padding: 25px; background: #1e1e1e; border-radius: 15px; border: 1px solid #333; text-align: left; animation: slideUp 0.6s ease-out; border-left: 5px solid var(--gold); }
+        .res-title { color: var(--gold); font-size: 1.3rem; border-bottom: 1px solid #333; padding-bottom: 10px; margin-bottom: 15px; font-family: 'Playfair Display', serif; letter-spacing: 1px; }
+        .res-item { margin-bottom: 18px; line-height: 1.5; }
+        .res-label { font-weight: 600; color: var(--gold); display: block; font-size: 0.8rem; text-transform: uppercase; margin-bottom: 4px; letter-spacing: 1px; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+        .loading-spinner { display: none; margin: 15px auto; border: 3px solid rgba(212,175,55,0.1); border-left-color: var(--gold); border-radius: 50%; width: 45px; height: 45px; animation: spin 1s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
 
     <div class="vogue-header">OpticGrid</div>
-    <p style="font-style: italic; letter-spacing: 1px; margin-bottom: 20px; color: #888;">Modern Optik | AI Analysis Edition</p>
+    <p style="font-style: italic; letter-spacing: 2px; margin-bottom: 20px; color: #888; font-size: 0.9rem;">Advanced Biometric Analysis</p>
 
     <div class="container">
         <video id="input_video" playsinline></video>
     </div>
 
     <div id="loading" class="loading-spinner"></div>
-    <button id="start-btn" class="btn-analyze" disabled>ANALİZİ BAŞLAT</button>
+    <button id="start-btn" class="btn-analyze" disabled>Analizi Başlat</button>
 
     <div id="result-box">
-        <div class="res-title">Analiz Sonuçlarınız</div>
+        <div class="res-title">Biyometrik Sonuçlar</div>
         <div class="res-item">
-            <span class="res-label">Yüz Tipiniz</span>
+            <span class="res-label">Algılanan Yüz Geometrisi</span>
             <span id="res-yuz" style="font-size: 1.2rem; font-weight: 600; color: #fff;"></span>
         </div>
         <div class="res-item">
-            <span class="res-label">Önerilen Gözlük Modelleri</span>
-            <span id="res-gozluk" style="color: #bbb;"></span>
+            <span class="res-label">Optik Model Önerileri</span>
+            <span id="res-gozluk" style="color: #bbb; font-size: 0.95rem;"></span>
         </div>
         <div class="res-item">
-            <span class="res-label">İdeal Çerçeve Formları</span>
-            <span id="res-cerceve" style="color: #bbb;"></span>
+            <span class="res-label">Mimari Çerçeve Analizi</span>
+            <span id="res-cerceve" style="color: #bbb; font-size: 0.95rem;"></span>
         </div>
         <div class="res-item">
-            <span class="res-label">Renk ve Stil Notu</span>
-            <span id="res-renk" style="color: #bbb;"></span>
+            <span class="res-label">Modern Optik Renk Paleti</span>
+            <span id="res-renk" style="color: #bbb; font-size: 0.95rem;"></span>
         </div>
     </div>
 
@@ -68,7 +68,7 @@
             return `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4/${file}`;
         }});
 
-        faceMesh.setOptions({ maxNumFaces: 1, refineLandmarks: true, minDetectionConfidence: 0.6 });
+        faceMesh.setOptions({ maxNumFaces: 1, refineLandmarks: true, minDetectionConfidence: 0.7 });
 
         let lastResults = null;
         faceMesh.onResults((results) => {
@@ -80,7 +80,12 @@
             onFrame: async () => { await faceMesh.send({image: videoElement}); },
             width: 640, height: 480
         });
-        camera.start().catch(() => alert("Kamera erişimi reddedildi!"));
+        camera.start();
+
+        // İki nokta arası mesafe ölçer (Öklid mesafesi)
+        function getDist(p1, p2, w, h) {
+            return Math.sqrt(Math.pow((p1.x - p2.x)*w, 2) + Math.pow((p1.y - p2.y)*h, 2));
+        }
 
         startBtn.addEventListener('click', () => {
             if (!lastResults?.multiFaceLandmarks) return;
@@ -92,34 +97,48 @@
             const h = videoElement.videoHeight;
             const w = videoElement.videoWidth;
 
-            const y_yuk = Math.sqrt(Math.pow((lm[10].x - lm[152].x)*w, 2) + Math.pow((lm[10].y - lm[152].y)*h, 2));
-            const y_gen = Math.sqrt(Math.pow((lm[234].x - lm[454].x)*w, 2) + Math.pow((lm[234].y - lm[454].y)*h, 2));
-            const oran = y_yuk / y_gen;
+            // --- PROFESYONEL ÖLÇÜM SETİ ---
+            const faceHeight = getDist(lm[10], lm[152], w, h);      // Alın-Çene
+            const cheekWidth = getDist(lm[234], lm[454], w, h);    // Elmacık kemikleri
+            const foreheadWidth = getDist(lm[103], lm[332], w, h); // Alın genişliği
+            const jawWidth = getDist(lm[132], lm[361], w, h);      // Çene hattı genişliği
+
+            const ratioHV = faceHeight / cheekWidth; // Yükseklik / Genişlik Oranı
+            const ratioFJ = foreheadWidth / jawWidth; // Alın / Çene Oranı
 
             let yuz, modeller, cerceveler, renk;
             const c = user.cinsiyet;
 
-            // --- GÜNCELLENMİŞ HASSAS EŞİKLER ---
-            if (oran > 1.40) { 
-                yuz = "UZUN / OBLONG";
-                modeller = "Geniş gövdeli Wayfarer, Büyük Kare, Dikdörtgen Modeller";
-                cerceveler = "Yüzün dikey hattını kıracak geniş ve kalın saplı tasarımlar.";
-                renk = (c === "Erkek" ? "Mat Siyah / Füme" : "Koyu Havana / Bordo");
-            } else if (oran > 1.22 && oran <= 1.40) { 
+            // --- MULTİ-PARAMETRELİ KARAR ALGORİTMASI ---
+            if (ratioHV > 1.42) {
+                yuz = "UZUN (OBLONG)";
+                modeller = "Oversized Kare, Geniş Wayfarer, Aviator";
+                cerceveler = "Yüzün dikey algısını kırmak için alt kısmı derin, kalın saplı çerçeveler.";
+                renk = (c === "Erkek" ? "Mat Siyah / Koyu Füme" : "Bordo / Havana");
+            } 
+            else if (ratioHV < 1.15 && ratioFJ > 1.05) {
+                yuz = "KALP / ÜÇGEN";
+                modeller = "Rimless (Çerçevesiz), İnce Oval, Cat-Eye";
+                cerceveler = "Geniş alnı dengelemek için alt kısmı daha geniş veya çerçevesiz hafif modeller.";
+                renk = (c === "Erkek" ? "Gümüş / Açık Mavi" : "Rose Gold / Şeffaf Pembe");
+            }
+            else if (ratioHV < 1.15 && Math.abs(cheekWidth - jawWidth) < 20) {
+                yuz = "KARE / KÖŞELİ";
+                modeller = "Yuvarlak (Panto), Oval, Yumuşak Köşeli Retro";
+                cerceveler = "Sert çene hatlarını yumuşatmak için ince metalik, dairesel formlar.";
+                renk = (c === "Erkek" ? "Antrasit / Gunmetal" : "Altın / Pastel Yeşil");
+            }
+            else if (ratioHV < 1.15) {
+                yuz = "YUVARLAK";
+                modeller = "Keskin Dikdörtgen, Geometrik, Kare";
+                cerceveler = "Yüzü daha zayıf ve uzun göstermek için belirgin köşeli ve koyu renkli konturlar.";
+                renk = (c === "Erkek" ? "Klasik Siyah / Lacivert" : "Koyu Kaplumbağa / Granit");
+            }
+            else {
                 yuz = "OVAL (DENGELİ)";
-                modeller = "Aviator, Retro Yuvarlak, Cat-Eye (Kedi Gözü)";
-                cerceveler = "Hemen hemen her form uyar. Yüz hatlarını bozmayan orta ölçekli çerçeveler.";
-                renk = (c === "Erkek" ? "Lacivert / Klasik Siyah" : "Altın / Şeffaf Nude");
-            } else if (oran > 1.08 && oran <= 1.22) { 
-                yuz = "YUVARLAK / DOLGUN";
-                modeller = "Keskin Köşeli Dikdörtgen, Retro Kare, Geometrik Formlar";
-                cerceveler = "Yüzü daha kemikli ve ince gösterecek köşeli konturlu çerçeveler.";
-                renk = (c === "Erkek" ? "Antrasit / Koyu Yeşil" : "Klasik Kaplumbağa Deseni / Bordo");
-            } else { 
-                yuz = "KARE / KALP HATLARI";
-                modeller = "Panto (Tam Yuvarlak), Oval, Kenarları yumuşatılmış modeller";
-                cerceveler = "Sert hatları (çene ve alın) yumuşatacak kavisli, ince ve hafif tasarımlar.";
-                renk = (c === "Erkek" ? "Gümüş Metal / Gunmetal" : "Açık Altın / Pastel Tonlar");
+                modeller = "Hemen hemen her model (Wayfarer, Aviator, Clubmaster)";
+                cerceveler = "Yüzün doğal oranlarını koruyan, kaş çizgisini takip eden dengeli modeller.";
+                renk = (c === "Erkek" ? "Koyu Kahve / Siyah" : "Şampanya / Fildişi");
             }
 
             document.getElementById('res-yuz').innerText = yuz;
@@ -134,7 +153,7 @@
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ ...user, yuz_tipi: yuz, oneri: modeller })
-            }).catch(e => console.log("Kayıt hatası"));
+            }).catch(e => console.log("DB Kayıt Hatası"));
         });
     </script>
 </body>
