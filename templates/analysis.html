@@ -3,63 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OpticGrid | Elite VIP</title>
+    <title>OpticGrid | Analysis Center</title>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4/face_mesh.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3/camera_utils.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
         :root { --gold: #C5A059; --cream: #FDFBF7; --text: #2C2C2C; --border: #E5D5B7; }
-        body { background: var(--cream); color: var(--text); font-family: 'Poppins', sans-serif; margin: 0; padding: 0; min-height: 100vh; }
+        body { background: var(--cream); color: var(--text); font-family: 'Poppins', sans-serif; margin: 0; overflow-x: hidden; }
 
-        /* 1. KATMAN: MÜŞTERİ KAYIT (EN ÜSTTE) */
-        #entry-modal { 
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-            background: var(--cream); /* Arka planı tamamen kapatması için krem yaptık */
-            display: flex; align-items: center; justify-content: center; z-index: 10000; 
-        }
-        .modal-box { 
-            background: #fff; padding: 40px; border-radius: 35px; width: 85%; max-width: 380px; 
-            border: 1px solid var(--gold); box-shadow: 0 10px 40px rgba(197,160,89,0.2); text-align: center;
-        }
-        .modal-title { font-family: 'Playfair Display', serif; color: var(--gold); font-size: 1.8rem; margin-bottom: 25px; }
-        .modal-box input, .modal-box select { 
-            width: 100%; padding: 15px; margin-bottom: 15px; border-radius: 12px; 
-            border: 1px solid #eee; background: #fafafa; font-size: 1rem; box-sizing: border-box; 
-        }
-        .btn-go { 
-            background: var(--gold); color: #fff; border: none; padding: 15px; border-radius: 30px; 
-            width: 100%; font-weight: 600; cursor: pointer; text-transform: uppercase; letter-spacing: 2px; 
-        }
+        /* MODAL: Müşteri Kayıt */
+        #entry-modal { position: fixed; inset: 0; background: var(--cream); display: flex; align-items: center; justify-content: center; z-index: 9999; }
+        .modal-box { background: #fff; padding: 50px 40px; border-radius: 40px; width: 90%; max-width: 400px; border: 1px solid var(--border); text-align: center; }
+        .modal-title { font-family: 'Playfair Display', serif; color: var(--gold); font-size: 2rem; margin-bottom: 30px; }
+        .modal-box input, .modal-box select { width: 100%; padding: 18px; margin-bottom: 20px; border-radius: 15px; border: 1px solid #eee; background: #fafafa; font-size: 1rem; box-sizing: border-box; }
+        .btn-go { background: var(--gold); color: #fff; border: none; padding: 20px; border-radius: 50px; width: 100%; font-weight: 600; cursor: pointer; text-transform: uppercase; letter-spacing: 2px; }
 
-        /* 2. KATMAN: ANALİZ VE KAMERA (MODAL KAPANINCA GELİR) */
-        #main-content { display: none; padding-top: 20px; }
-        .vogue-logo { font-family: 'Playfair Display', serif; font-size: 2.5rem; color: var(--gold); letter-spacing: 6px; text-transform: uppercase; margin-bottom: 15px; }
-        .container { 
-            position: relative; width: 90%; max-width: 440px; margin: 0 auto; 
-            border: 8px solid #fff; border-radius: 40px; overflow: hidden; 
-            box-shadow: 0 15px 40px rgba(197,160,89,0.1); background: #000; 
-        }
+        /* MAIN CONTENT */
+        #main-content { display: none; text-align: center; padding: 40px 20px; }
+        .vogue-logo { font-family: 'Playfair Display', serif; font-size: 2.5rem; color: var(--gold); letter-spacing: 10px; text-transform: uppercase; margin-bottom: 30px; }
+        .cam-container { position: relative; width: 100%; max-width: 450px; margin: 0 auto; border: 10px solid #fff; border-radius: 50px; overflow: hidden; box-shadow: 0 25px 50px rgba(0,0,0,0.1); background: #000; }
         video { width: 100%; display: block; transform: scaleX(-1); }
-        .cam-btn { position: absolute; top: 15px; right: 15px; background: rgba(255,255,255,0.9); border: none; padding: 10px; border-radius: 50%; cursor: pointer; font-size: 1.3rem; z-index: 10; }
-        .btn-analyze { 
-            background: var(--gold); color: #fff; border: none; padding: 18px 50px; 
-            font-size: 1rem; font-weight: 600; cursor: pointer; border-radius: 50px; 
-            margin: 20px 0; letter-spacing: 2px; text-transform: uppercase; 
-        }
+        .cam-btn { position: absolute; top: 20px; right: 20px; background: rgba(255,255,255,0.9); border: none; padding: 12px; border-radius: 50%; cursor: pointer; font-size: 1.5rem; z-index: 10; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        .btn-analyze { background: var(--gold); color: #fff; border: none; padding: 20px 60px; font-size: 1.1rem; font-weight: 600; cursor: pointer; border-radius: 50px; margin: 30px 0; letter-spacing: 3px; text-transform: uppercase; transition: 0.3s; }
+        .btn-analyze:active { transform: scale(0.95); }
 
-        /* 3. KATMAN: ANALİZ SONUÇ TABLOSU (ANALİZ BİTİNCE GELİR) */
-        #result-box { 
-            display: none; width: 90%; max-width: 500px; margin: 20px auto; 
-            padding: 30px; background: #fff; border-radius: 25px; 
-            border: 1px solid var(--border); text-align: left; 
-            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
-        }
-        .res-title { font-family: 'Playfair Display', serif; color: var(--gold); font-size: 1.6rem; text-align: center; margin-bottom: 20px; }
-        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-        td { padding: 12px 0; border-bottom: 1px solid #f9f9f9; font-size: 0.9rem; }
-        .label { color: var(--gold); font-weight: 600; text-transform: uppercase; font-size: 0.75rem; }
+        /* RESULT BOX */
+        #result-box { display: none; width: 100%; max-width: 500px; margin: 20px auto; padding: 40px; background: #fff; border-radius: 35px; border: 1px solid var(--border); text-align: left; }
+        .res-title { font-family: 'Playfair Display', serif; color: var(--gold); font-size: 1.8rem; text-align: center; margin-bottom: 30px; }
+        table { width: 100%; border-collapse: collapse; }
+        td { padding: 15px 0; border-bottom: 1px solid #f5f5f5; font-size: 0.95rem; }
+        .label { color: var(--gold); font-weight: 600; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 1px; }
         .value { text-align: right; font-weight: 500; }
-        .note-box { background: var(--cream); padding: 15px; border-left: 4px solid var(--gold); font-size: 0.85rem; line-height: 1.5; color: #555; }
+        .note-box { background: var(--cream); padding: 20px; border-left: 5px solid var(--gold); margin-top: 25px; border-radius: 0 15px 15px 0; font-size: 0.9rem; line-height: 1.6; }
     </style>
 </head>
 <body>
@@ -73,34 +48,33 @@
                 <option value="Erkek">Erkek</option>
                 <option value="Kadın">Kadın</option>
             </select>
-            <button class="btn-go" onclick="initSession()">Kamerayı Başlat</button>
+            <button class="btn-go" onclick="initSession()">Analize Geç</button>
         </div>
     </div>
 
     <div id="main-content">
         <div class="vogue-logo">OpticGrid</div>
-        <div class="container">
+        <div class="cam-container">
             <video id="input_video" playsinline></video>
-            <button id="cam-switch" class="cam-btn">🔄</button>
+            <button id="cam-switch" class="cam-btn">📸</button>
         </div>
         <button id="start-btn" class="btn-analyze">Analizi Başlat</button>
 
         <div id="result-box">
             <div class="res-title">Analiz Raporu</div>
-            <div id="m-summary" style="font-size: 0.8rem; text-align: center; color: #999; margin-bottom: 20px;"></div>
+            <div id="m-summary" style="text-align: center; color: #999; margin-bottom: 25px; font-style: italic;"></div>
             <table>
                 <tr><td class="label">Yüz Geometrisi</td><td id="res-yuz" class="value">-</td></tr>
                 <tr><td class="label">İdeal Form</td><td id="res-form" class="value">-</td></tr>
                 <tr><td class="label">Köprü Tipi</td><td id="res-kopru" class="value">-</td></tr>
-                <tr><td class="label">Materyal</td><td id="res-mat" class="value">-</td></tr>
                 <tr><td class="label">Renk Paleti</td><td id="res-renk" class="value">-</td></tr>
             </table>
             <div class="note-box">
-                <strong style="color: var(--gold);">Uzman Notu:</strong><br>
-                <span id="res-oneri">Yüz hatlarınız için en uygun seçimler yukarıda listelenmiştir.</span>
+                <strong style="color: var(--gold);">Modern Optik Önerisi:</strong><br>
+                <span id="res-oneri"></span>
             </div>
-            <div style="text-align:center; margin-top: 25px;">
-                <button onclick="location.reload()" style="background:none; border:none; color: var(--gold); text-decoration: underline; cursor:pointer; font-size: 0.8rem;">Yeni Kayıt Başlat</button>
+            <div style="text-align:center; margin-top: 35px;">
+                <button onclick="location.reload()" style="background:none; border:none; color: var(--gold); text-decoration: underline; cursor:pointer; font-size: 0.9rem; letter-spacing: 1px;">YENİ ANALİZ BAŞLAT</button>
             </div>
         </div>
     </div>
@@ -109,6 +83,7 @@
         let customer = {};
         const videoElement = document.getElementById('input_video');
         const startBtn = document.getElementById('start-btn');
+        let currentStream = null;
         let facingMode = 'user';
 
         function initSession() {
@@ -116,7 +91,7 @@
             customer.yas = document.getElementById('m-yas').value;
             customer.cin = document.getElementById('m-cin').value;
 
-            if(!customer.ad || !customer.yas) return alert("Eksik bilgi girmeyiniz.");
+            if(!customer.ad || !customer.yas) return alert("Lütfen müşteri bilgilerini eksiksiz girin.");
             
             document.getElementById('entry-modal').style.display = 'none';
             document.getElementById('main-content').style.display = 'block';
@@ -124,14 +99,23 @@
         }
 
         async function setupCamera() {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: facingMode } });
-            videoElement.srcObject = stream;
-            videoElement.play();
-            const camera = new Camera(videoElement, {
-                onFrame: async () => { await faceMesh.send({image: videoElement}); },
-                width: 640, height: 480
-            });
-            camera.start();
+            if (currentStream) {
+                currentStream.getTracks().forEach(track => track.stop());
+            }
+            try {
+                currentStream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: facingMode, width: { ideal: 1280 }, height: { ideal: 720 } } 
+                });
+                videoElement.srcObject = currentStream;
+                videoElement.play();
+                
+                const camera = new Camera(videoElement, {
+                    onFrame: async () => { await faceMesh.send({image: videoElement}); }
+                });
+                camera.start();
+            } catch (err) {
+                alert("Kamera başlatılamadı: " + err);
+            }
         }
 
         document.getElementById('cam-switch').addEventListener('click', () => {
@@ -146,7 +130,10 @@
         faceMesh.onResults((res) => { resultsFound = res; });
 
         startBtn.addEventListener('click', () => {
-            if (!resultsFound?.multiFaceLandmarks) return alert("Yüz algılanamadı.");
+            if (!resultsFound || !resultsFound.multiFaceLandmarks || resultsFound.multiFaceLandmarks.length === 0) {
+                return alert("Yüz algılanamadı, lütfen kameraya düz bakın.");
+            }
+
             const lm = resultsFound.multiFaceLandmarks[0];
             const h = videoElement.videoHeight;
             const w = videoElement.videoWidth;
@@ -155,30 +142,37 @@
             const ratio = dist(lm[10], lm[152]) / dist(lm[234], lm[454]);
 
             let d = {};
-            if (ratio > 1.35) {
-                d = { yuz: "Uzun (Oblong)", form: "Geniş Kare / Wayfarer", kopru: "Alçak Köprü", mat: "Kalın Kemik", renk: "Koyu Karamel / Mat Siyah", oneri: "Yüzünüzü daha dengeli göstermek için dikey derinliği olan modeller seçilmiştir." };
-            } else if (ratio < 1.18) {
-                d = { yuz: "Yuvarlak / Kare", form: "Keskin Dikdörtgen", kopru: "Yüksek Düz Köprü", mat: "Mat Asetat", renk: "Lacivert / Antrasit", oneri: "Hatlarınıza keskinlik ve karakter katmak için köşeli formlar tercih edilmiştir." };
+            if (ratio > 1.38) {
+                d = { yuz: "Uzun (Oblong)", form: "Geniş Kare / Wayfarer", kopru: "Alçak Köprü", renk: "Koyu Karamel / Mat Siyah", oneri: "Yüzünüzün uzunluğunu dengelemek için dikey derinliği olan çerçeveler seçmelisiniz." };
+            } else if (ratio < 1.15) {
+                d = { yuz: "Yuvarlak / Kare", form: "Keskin Dikdörtgen", kopru: "Yüksek Düz Köprü", renk: "Lacivert / Antrasit", oneri: "Yüz hatlarınıza daha net bir tanım katmak için köşeli ve sert formlar tercih edilmiştir." };
             } else {
-                d = { yuz: "Oval (Dengeli)", form: "Aviator / Clubmaster", kopru: "Standart Köprü", mat: "Titanyum / Metal", renk: "Altın / Bal Köpüğü", oneri: "İdeal yüz oranlarınıza en çok yakışan zamansız modeller listelenmiştir." };
+                d = { yuz: "Oval (Dengeli)", form: "Aviator / Clubmaster", kopru: "Standart Köprü", renk: "Altın / Bal Köpüğü", oneri: "İdeal yüz oranlarınız sayesinde neredeyse her model size yakışacaktır. Zamansız tasarımlara odaklandık." };
             }
 
+            // Arayüzü Güncelle
             document.getElementById('res-yuz').innerText = d.yuz;
             document.getElementById('res-form').innerText = d.form;
             document.getElementById('res-kopru').innerText = d.kopru;
-            document.getElementById('res-mat').innerText = d.mat;
             document.getElementById('res-renk').innerText = d.renk;
             document.getElementById('res-oneri').innerText = d.oneri;
-            document.getElementById('m-summary').innerText = `Müşteri Raporu: ${customer.ad} (${customer.yas} Yaş)`;
+            document.getElementById('m-summary').innerText = `Müşteri: ${customer.ad} | Yaş: ${customer.yas}`;
             
             document.getElementById('result-box').style.display = 'block';
-            document.querySelector('.container').style.display = 'none';
+            document.querySelector('.cam-container').style.display = 'none';
             startBtn.style.display = 'none';
 
+            // Veritabanına Kaydet
             fetch('/save_result', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ ad: customer.ad, yas: customer.yas, cinsiyet: customer.cin, yuz_tipi: d.yuz, oneri: d.form })
+                body: JSON.stringify({ 
+                    ad: customer.ad, 
+                    yas: customer.yas, 
+                    cinsiyet: customer.cin, 
+                    yuz_tipi: d.yuz, 
+                    oneri: `${d.form} | ${d.renk}` 
+                })
             });
         });
     </script>
