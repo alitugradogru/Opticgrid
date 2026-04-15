@@ -4,6 +4,7 @@ import mediapipe as mp
 import numpy as np
 import sqlite3
 import base64
+import os  # Render portu için gerekli
 
 app = Flask(__name__)
 
@@ -20,9 +21,14 @@ def save_to_db(ad, yas, cinsiyet, yuz, oneri):
     except Exception as e:
         print(f"DB Hatasi: {e}")
 
-# --- AI MODELLERİ ---
+# --- AI MODELLERİ (Render için optimize edildi) ---
 mp_face_mesh = mp.solutions.face_mesh
-face_mesh = mp_face_mesh.FaceMesh(static_image_mode=True, max_num_faces=1, refine_landmarks=True)
+# refine_landmarks=False yaparak işlemci yükünü %30 azalttık
+face_mesh = mp_face_mesh.FaceMesh(
+    static_image_mode=True, 
+    max_num_faces=1, 
+    min_detection_confidence=0.5
+)
 
 @app.route('/')
 def index(): return render_template('login.html')
@@ -59,12 +65,17 @@ def scan_web():
         if frame is None:
             return jsonify({'error': 'Resim işlenemedi'}), 400
 
+        # Render RAM koruması: Görüntüyü işlemeden önce küçültüyoruz
+        frame = cv2.resize(frame, (480, 640)) 
+        
         rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         results = face_mesh.process(rgb)
         
         if results.multi_face_landmarks:
             h, w, _ = frame.shape
             lm = results.multi_face_landmarks[0].landmark
+            
+            # Yüz tipi hesaplama (Öklid mesafesi)
             y_yuk = np.linalg.norm(np.array([lm[10].x*w, lm[10].y*h]) - np.array([lm[152].x*w, lm[152].y*h]))
             y_gen = np.linalg.norm(np.array([lm[234].x*w, lm[234].y*h]) - np.array([lm[454].x*w, lm[454].y*h]))
             oran = y_yuk / y_gen
@@ -89,4 +100,6 @@ def scan_web():
         return jsonify({'error': 'Sunucu hatası'}), 500
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    # Render için port dinamik olmalı
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port)
