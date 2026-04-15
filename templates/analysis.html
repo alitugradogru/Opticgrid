@@ -1,37 +1,186 @@
-<div id="result-box">
-    <div id="m-summary" style="font-size: 0.85rem; color: #b08b4a; margin-bottom: 15px; font-weight: 600; border-bottom: 1px solid #eee; padding-bottom: 10px;"></div>
-    
-    <div style="font-family: 'Playfair Display', serif; color: var(--gold); font-size: 1.6rem; margin-bottom: 20px; text-align: center;">Biyometrik Analiz Raporu</div>
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpticGrid | Elite VIP</title>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4/face_mesh.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3/camera_utils.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root { --gold: #C5A059; --cream: #FDFBF7; --text: #2C2C2C; --border: #E5D5B7; }
+        body { background: var(--cream); color: var(--text); font-family: 'Poppins', sans-serif; margin: 0; padding: 0; min-height: 100vh; }
 
-    <table style="width: 100%; border-collapse: collapse; margin-bottom: 25px; font-size: 0.9rem;">
-        <tr style="border-bottom: 1px solid #f2f2f2;">
-            <td style="padding: 10px 0; color: var(--gold); font-weight: 600;">Yüz Geometrisi</td>
-            <td id="res-yuz" style="padding: 10px 0; text-align: right; font-weight: 600;">-</td>
-        </tr>
-        <tr style="border-bottom: 1px solid #f2f2f2;">
-            <td style="padding: 10px 0; color: var(--gold); font-weight: 600;">İdeal Form</td>
-            <td id="res-form" style="padding: 10px 0; text-align: right;">-</td>
-        </tr>
-        <tr style="border-bottom: 1px solid #f2f2f2;">
-            <td style="padding: 10px 0; color: var(--gold); font-weight: 600;">Köprü Tipi</td>
-            <td id="res-kopru" style="padding: 10px 0; text-align: right;">-</td>
-        </tr>
-        <tr style="border-bottom: 1px solid #f2f2f2;">
-            <td style="padding: 10px 0; color: var(--gold); font-weight: 600;">Materyal</td>
-            <td id="res-materyal" style="padding: 10px 0; text-align: right;">-</td>
-        </tr>
-        <tr>
-            <td style="padding: 10px 0; color: var(--gold); font-weight: 600;">Renk Paleti</td>
-            <td id="res-renk" style="padding: 10px 0; text-align: right;">-</td>
-        </tr>
-    </table>
+        /* 1. KATMAN: MÜŞTERİ KAYIT (EN ÜSTTE) */
+        #entry-modal { 
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: var(--cream); /* Arka planı tamamen kapatması için krem yaptık */
+            display: flex; align-items: center; justify-content: center; z-index: 10000; 
+        }
+        .modal-box { 
+            background: #fff; padding: 40px; border-radius: 35px; width: 85%; max-width: 380px; 
+            border: 1px solid var(--gold); box-shadow: 0 10px 40px rgba(197,160,89,0.2); text-align: center;
+        }
+        .modal-title { font-family: 'Playfair Display', serif; color: var(--gold); font-size: 1.8rem; margin-bottom: 25px; }
+        .modal-box input, .modal-box select { 
+            width: 100%; padding: 15px; margin-bottom: 15px; border-radius: 12px; 
+            border: 1px solid #eee; background: #fafafa; font-size: 1rem; box-sizing: border-box; 
+        }
+        .btn-go { 
+            background: var(--gold); color: #fff; border: none; padding: 15px; border-radius: 30px; 
+            width: 100%; font-weight: 600; cursor: pointer; text-transform: uppercase; letter-spacing: 2px; 
+        }
 
-    <div style="background: var(--cream); padding: 20px; border-radius: 15px; border-left: 4px solid var(--gold);">
-        <span class="res-label">Uzman Optisyen Notu</span>
-        <p id="res-oneri" style="color: #555; font-size: 0.9rem; line-height: 1.6; margin: 5px 0 0 0;"></p>
+        /* 2. KATMAN: ANALİZ VE KAMERA (MODAL KAPANINCA GELİR) */
+        #main-content { display: none; padding-top: 20px; }
+        .vogue-logo { font-family: 'Playfair Display', serif; font-size: 2.5rem; color: var(--gold); letter-spacing: 6px; text-transform: uppercase; margin-bottom: 15px; }
+        .container { 
+            position: relative; width: 90%; max-width: 440px; margin: 0 auto; 
+            border: 8px solid #fff; border-radius: 40px; overflow: hidden; 
+            box-shadow: 0 15px 40px rgba(197,160,89,0.1); background: #000; 
+        }
+        video { width: 100%; display: block; transform: scaleX(-1); }
+        .cam-btn { position: absolute; top: 15px; right: 15px; background: rgba(255,255,255,0.9); border: none; padding: 10px; border-radius: 50%; cursor: pointer; font-size: 1.3rem; z-index: 10; }
+        .btn-analyze { 
+            background: var(--gold); color: #fff; border: none; padding: 18px 50px; 
+            font-size: 1rem; font-weight: 600; cursor: pointer; border-radius: 50px; 
+            margin: 20px 0; letter-spacing: 2px; text-transform: uppercase; 
+        }
+
+        /* 3. KATMAN: ANALİZ SONUÇ TABLOSU (ANALİZ BİTİNCE GELİR) */
+        #result-box { 
+            display: none; width: 90%; max-width: 500px; margin: 20px auto; 
+            padding: 30px; background: #fff; border-radius: 25px; 
+            border: 1px solid var(--border); text-align: left; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+        }
+        .res-title { font-family: 'Playfair Display', serif; color: var(--gold); font-size: 1.6rem; text-align: center; margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        td { padding: 12px 0; border-bottom: 1px solid #f9f9f9; font-size: 0.9rem; }
+        .label { color: var(--gold); font-weight: 600; text-transform: uppercase; font-size: 0.75rem; }
+        .value { text-align: right; font-weight: 500; }
+        .note-box { background: var(--cream); padding: 15px; border-left: 4px solid var(--gold); font-size: 0.85rem; line-height: 1.5; color: #555; }
+    </style>
+</head>
+<body>
+
+    <div id="entry-modal">
+        <div class="modal-box">
+            <div class="modal-title">Müşteri Kaydı</div>
+            <input type="text" id="m-ad" placeholder="Müşteri Ad Soyad" required>
+            <input type="number" id="m-yas" placeholder="Müşteri Yaşı" required>
+            <select id="m-cin">
+                <option value="Erkek">Erkek</option>
+                <option value="Kadın">Kadın</option>
+            </select>
+            <button class="btn-go" onclick="initSession()">Kamerayı Başlat</button>
+        </div>
     </div>
 
-    <div style="text-align: center; margin-top: 30px;">
-        <button onclick="window.location.reload()" style="background: none; border: 1px solid #ddd; padding: 8px 20px; border-radius: 20px; cursor: pointer; color: #999; font-size: 0.8rem;">Yeni Analiz</button>
+    <div id="main-content">
+        <div class="vogue-logo">OpticGrid</div>
+        <div class="container">
+            <video id="input_video" playsinline></video>
+            <button id="cam-switch" class="cam-btn">🔄</button>
+        </div>
+        <button id="start-btn" class="btn-analyze">Analizi Başlat</button>
+
+        <div id="result-box">
+            <div class="res-title">Analiz Raporu</div>
+            <div id="m-summary" style="font-size: 0.8rem; text-align: center; color: #999; margin-bottom: 20px;"></div>
+            <table>
+                <tr><td class="label">Yüz Geometrisi</td><td id="res-yuz" class="value">-</td></tr>
+                <tr><td class="label">İdeal Form</td><td id="res-form" class="value">-</td></tr>
+                <tr><td class="label">Köprü Tipi</td><td id="res-kopru" class="value">-</td></tr>
+                <tr><td class="label">Materyal</td><td id="res-mat" class="value">-</td></tr>
+                <tr><td class="label">Renk Paleti</td><td id="res-renk" class="value">-</td></tr>
+            </table>
+            <div class="note-box">
+                <strong style="color: var(--gold);">Uzman Notu:</strong><br>
+                <span id="res-oneri">Yüz hatlarınız için en uygun seçimler yukarıda listelenmiştir.</span>
+            </div>
+            <div style="text-align:center; margin-top: 25px;">
+                <button onclick="location.reload()" style="background:none; border:none; color: var(--gold); text-decoration: underline; cursor:pointer; font-size: 0.8rem;">Yeni Kayıt Başlat</button>
+            </div>
+        </div>
     </div>
-</div>
+
+    <script>
+        let customer = {};
+        const videoElement = document.getElementById('input_video');
+        const startBtn = document.getElementById('start-btn');
+        let facingMode = 'user';
+
+        function initSession() {
+            customer.ad = document.getElementById('m-ad').value;
+            customer.yas = document.getElementById('m-yas').value;
+            customer.cin = document.getElementById('m-cin').value;
+
+            if(!customer.ad || !customer.yas) return alert("Eksik bilgi girmeyiniz.");
+            
+            document.getElementById('entry-modal').style.display = 'none';
+            document.getElementById('main-content').style.display = 'block';
+            setupCamera();
+        }
+
+        async function setupCamera() {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: facingMode } });
+            videoElement.srcObject = stream;
+            videoElement.play();
+            const camera = new Camera(videoElement, {
+                onFrame: async () => { await faceMesh.send({image: videoElement}); },
+                width: 640, height: 480
+            });
+            camera.start();
+        }
+
+        document.getElementById('cam-switch').addEventListener('click', () => {
+            facingMode = facingMode === 'user' ? 'environment' : 'user';
+            setupCamera();
+        });
+
+        const faceMesh = new FaceMesh({locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4/${file}`});
+        faceMesh.setOptions({ maxNumFaces: 1, refineLandmarks: true, minDetectionConfidence: 0.7 });
+
+        let resultsFound = null;
+        faceMesh.onResults((res) => { resultsFound = res; });
+
+        startBtn.addEventListener('click', () => {
+            if (!resultsFound?.multiFaceLandmarks) return alert("Yüz algılanamadı.");
+            const lm = resultsFound.multiFaceLandmarks[0];
+            const h = videoElement.videoHeight;
+            const w = videoElement.videoWidth;
+
+            const dist = (p1, p2) => Math.sqrt(Math.pow((p1.x - p2.x)*w, 2) + Math.pow((p1.y - p2.y)*h, 2));
+            const ratio = dist(lm[10], lm[152]) / dist(lm[234], lm[454]);
+
+            let d = {};
+            if (ratio > 1.35) {
+                d = { yuz: "Uzun (Oblong)", form: "Geniş Kare / Wayfarer", kopru: "Alçak Köprü", mat: "Kalın Kemik", renk: "Koyu Karamel / Mat Siyah", oneri: "Yüzünüzü daha dengeli göstermek için dikey derinliği olan modeller seçilmiştir." };
+            } else if (ratio < 1.18) {
+                d = { yuz: "Yuvarlak / Kare", form: "Keskin Dikdörtgen", kopru: "Yüksek Düz Köprü", mat: "Mat Asetat", renk: "Lacivert / Antrasit", oneri: "Hatlarınıza keskinlik ve karakter katmak için köşeli formlar tercih edilmiştir." };
+            } else {
+                d = { yuz: "Oval (Dengeli)", form: "Aviator / Clubmaster", kopru: "Standart Köprü", mat: "Titanyum / Metal", renk: "Altın / Bal Köpüğü", oneri: "İdeal yüz oranlarınıza en çok yakışan zamansız modeller listelenmiştir." };
+            }
+
+            document.getElementById('res-yuz').innerText = d.yuz;
+            document.getElementById('res-form').innerText = d.form;
+            document.getElementById('res-kopru').innerText = d.kopru;
+            document.getElementById('res-mat').innerText = d.mat;
+            document.getElementById('res-renk').innerText = d.renk;
+            document.getElementById('res-oneri').innerText = d.oneri;
+            document.getElementById('m-summary').innerText = `Müşteri Raporu: ${customer.ad} (${customer.yas} Yaş)`;
+            
+            document.getElementById('result-box').style.display = 'block';
+            document.querySelector('.container').style.display = 'none';
+            startBtn.style.display = 'none';
+
+            fetch('/save_result', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ ad: customer.ad, yas: customer.yas, cinsiyet: customer.cin, yuz_tipi: d.yuz, oneri: d.form })
+            });
+        });
+    </script>
+</body>
+</html>
