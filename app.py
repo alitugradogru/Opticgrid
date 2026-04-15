@@ -21,14 +21,9 @@ def save_to_db(ad, yas, cinsiyet, yuz, oneri):
     except Exception as e:
         print(f"DB Hatasi: {e}")
 
-# --- MEDIAPIPE (HATASIZ VERSİYON) ---
+# --- AI MODEL (En Güvenli Kurulum) ---
 mp_face_mesh = mp.solutions.face_mesh
-face_mesh_engine = mp_face_mesh.FaceMesh(
-    static_image_mode=False, 
-    max_num_faces=1, 
-    min_detection_confidence=0.5,
-    min_tracking_confidence=0.5
-)
+face_mesh = mp_face_mesh.FaceMesh(static_image_mode=True, max_num_faces=1)
 
 @app.route('/')
 def index(): return render_template('login.html')
@@ -40,38 +35,23 @@ def check_login(): return render_template('details.html')
 def start_analysis():
     return render_template('analysis.html', ad=request.form.get('ad'), yas=request.form.get('yas'), cinsiyet=request.form.get('cinsiyet'))
 
-@app.route('/admin')
-def admin_panel():
-    try:
-        conn = sqlite3.connect('opticgrid.db')
-        cursor = conn.cursor()
-        cursor.execute('SELECT ad, yas, cinsiyet, yuz_tipi, oneri, tarih FROM musteriler ORDER BY tarih DESC')
-        rows = cursor.fetchall()
-        conn.close()
-        return render_template('admin.html', musteriler=rows)
-    except:
-        return "Kayit yok."
-
 @app.route('/scan_web', methods=['POST'])
 def scan_web():
     try:
         data = request.json
-        if not data or 'image' not in data:
-            return jsonify({'error': 'Veri yok'}), 400
+        if not data or 'image' not in data: return jsonify({'error': 'Veri yok'}), 400
 
         img_str = data['image'].split(',')[1]
         img_data = base64.b64decode(img_str)
         nparr = np.frombuffer(img_data, np.uint8)
         frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
 
-        if frame is None:
-            return jsonify({'error': 'Resim hatasi'}), 400
+        if frame is None: return jsonify({'error': 'Resim hatasi'}), 400
 
-        # Hafifletme
-        frame = cv2.resize(frame, (240, 320)) 
+        # Render'ın CPU'sunu yormamak için boyutu küçülttük
+        frame = cv2.resize(frame, (320, 480))
         rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        
-        results = face_mesh_engine.process(rgb)
+        results = face_mesh.process(rgb)
         
         if results.multi_face_landmarks:
             h, w, _ = frame.shape
@@ -81,22 +61,17 @@ def scan_web():
             oran = y_yuk / y_gen
 
             c = data.get('cinsiyet', 'Erkek')
-            if oran > 1.25:
-                res, rnk = "UZUN / OVAL", ("Siyah" if c=="Erkek" else "Rose Gold")
-                oneri = f"Yüzünüzün asaletini {rnk} tonlarinda, genis Wayfarer çerçevelerle taçlandirmalisiniz."
-            elif 0.95 < oran < 1.10:
-                res, rnk = "YUVARLAK", ("Lacivert" if c=="Erkek" else "Bordo")
-                oneri = f"Yumusak hatlarinizi {rnk} rengi keskin köseli çerçevelerle dengeleyin."
-            else:
-                res, rnk = "KARE / KALP", ("Gümüs" if c=="Erkek" else "Altin")
-                oneri = f"Güçlü karakterinizi {rnk} tonlarindaki yuvarlak modellerle yumusatin."
+            if oran > 1.25: res, rnk = "UZUN / OVAL", ("Siyah" if c=="Erkek" else "Rose Gold")
+            elif 0.95 < oran < 1.10: res, rnk = "YUVARLAK", ("Lacivert" if c=="Erkek" else "Bordo")
+            else: res, rnk = "KARE / KALP", ("Gümüs" if c=="Erkek" else "Altin")
             
+            oneri = f"Yüz tipiniz {res}. Size en uygun çerçeveler {rnk} tonlarindadir."
             save_to_db(data.get('ad'), data.get('yas'), c, res, oneri)
             return jsonify({'yuz_tipi': res, 'oneri': oneri})
         
         return jsonify({'error': 'Yüz bulunamadi'}), 400
     except Exception as e:
-        return jsonify({'error': 'Sunucu hatasi'}), 500
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
