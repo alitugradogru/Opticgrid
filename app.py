@@ -21,13 +21,15 @@ def save_to_db(ad, yas, cinsiyet, yuz, oneri):
     except Exception as e:
         print(f"DB Hatasi: {e}")
 
-# --- AI MODELLERİ (Global Tanımlama ile Hızlandırma) ---
+# --- MEDIAPIPE (KÖKÜMÜZ: SUNUCUDA ÇALIŞIYOR) ---
 mp_face_mesh = mp.solutions.face_mesh
-# Nesneyi burada bir kez oluşturuyoruz, her seferinde RAM harcamıyor
+# static_image_mode=False ve model_complexity=0 ile Render'ın CPU'sunu koruyoruz
 face_mesh_engine = mp_face_mesh.FaceMesh(
-    static_image_mode=True, 
+    static_image_mode=False, 
     max_num_faces=1, 
-    min_detection_confidence=0.5
+    model_complexity=0, 
+    min_detection_confidence=0.5,
+    min_tracking_confidence=0.5
 )
 
 @app.route('/')
@@ -38,24 +40,31 @@ def check_login(): return render_template('details.html')
 
 @app.route('/start_analysis', methods=['POST'])
 def start_analysis():
-    return render_template('analysis.html', ad=request.form.get('ad'), yas=request.form.get('yas'), cinsiyet=request.form.get('cinsiyet'))
+    return render_template('analysis.html', 
+                           ad=request.form.get('ad'), 
+                           yas=request.form.get('yas'), 
+                           cinsiyet=request.form.get('cinsiyet'))
 
 @app.route('/admin')
 def admin_panel():
-    conn = sqlite3.connect('opticgrid.db')
-    cursor = conn.cursor()
-    cursor.execute('SELECT ad, yas, cinsiyet, yuz_tipi, oneri, tarih FROM musteriler ORDER BY tarih DESC')
-    rows = cursor.fetchall()
-    conn.close()
-    return render_template('admin.html', musteriler=rows)
+    try:
+        conn = sqlite3.connect('opticgrid.db')
+        cursor = conn.cursor()
+        cursor.execute('SELECT ad, yas, cinsiyet, yuz_tipi, oneri, tarih FROM musteriler ORDER BY tarih DESC')
+        rows = cursor.fetchall()
+        conn.close()
+        return render_template('admin.html', musteriler=rows)
+    except:
+        return "Henüz kayıt bulunamadı."
 
 @app.route('/scan_web', methods=['POST'])
 def scan_web():
     try:
         data = request.json
         if not data or 'image' not in data:
-            return jsonify({'error': 'Resim verisi alınamadı'}), 400
+            return jsonify({'error': 'Veri alınamadı'}), 400
 
+        # Base64 çözme
         img_str = data['image'].split(',')[1]
         img_data = base64.b64decode(img_str)
         nparr = np.frombuffer(img_data, np.uint8)
@@ -64,16 +73,18 @@ def scan_web():
         if frame is None:
             return jsonify({'error': 'Resim işlenemedi'}), 400
 
-        # Görüntü boyutunu daha da düşürdük (RAM Dostu)
-        frame = cv2.resize(frame, (320, 480)) 
+        # --- KRİTİK HIZLANDIRMA: Çözünürlüğü mikro boyuta düşürdük ---
+        frame = cv2.resize(frame, (240, 320)) 
         rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         
-        # Hazır motoru kullanıyoruz
+        # Analiz Başlıyor
         results = face_mesh_engine.process(rgb)
         
         if results.multi_face_landmarks:
             h, w, _ = frame.shape
             lm = results.multi_face_landmarks[0].landmark
+            
+            # Kök hesaplama mantığın
             y_yuk = np.linalg.norm(np.array([lm[10].x*w, lm[10].y*h]) - np.array([lm[152].x*w, lm[152].y*h]))
             y_gen = np.linalg.norm(np.array([lm[234].x*w, lm[234].y*h]) - np.array([lm[454].x*w, lm[454].y*h]))
             oran = y_yuk / y_gen
@@ -92,10 +103,13 @@ def scan_web():
             save_to_db(data.get('ad'), data.get('yas'), c, res, oneri)
             return jsonify({'yuz_tipi': res, 'oneri': oneri})
         
-        return jsonify({'error': 'Yüz algılanamadı, lütfen ışığa dönün.'}), 400
+        return jsonify({'error': 'Yüz algılanamadı, lütfen ışığa yaklaşın.'}), 400
+
     except Exception as e:
-        return jsonify({'error': 'Analiz yapılamadı'}), 500
+        print(f"Hata: {e}")
+        return jsonify({'error': 'Sunucu çok yoğun, lütfen tekrar deneyin.'}), 500
 
 if __name__ == '__main__':
+    # Render için dinamik port
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
