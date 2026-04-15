@@ -3,85 +3,85 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OpticGrid | VIP Client Entry</title>
+    <title>OpticGrid | VIP Elite</title>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4/face_mesh.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3/camera_utils.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
         :root { --gold: #C5A059; --cream: #FDFBF7; --text: #2C2C2C; --border: #E5D5B7; }
-        body { background: var(--cream); color: var(--text); font-family: 'Poppins', sans-serif; margin: 0; text-align: center; overflow-x: hidden; }
+        body { background: var(--cream); color: var(--text); font-family: 'Poppins', sans-serif; margin: 0; text-align: center; }
         
-        /* Müşteri Bilgi Formu (Modal) */
-        #customer-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 9999; }
-        .modal-content { background: #fff; padding: 40px; border-radius: 30px; width: 90%; max-width: 400px; border: 1px solid var(--gold); }
-        .modal-title { font-family: 'Playfair Display', serif; color: var(--gold); font-size: 1.8rem; margin-bottom: 20px; }
-        .modal-input { width: 100%; padding: 15px; margin-bottom: 15px; border-radius: 12px; border: 1px solid #eee; box-sizing: border-box; font-size: 1rem; }
-        .btn-start-session { background: var(--gold); color: #fff; border: none; padding: 15px 30px; border-radius: 30px; cursor: pointer; font-weight: 600; width: 100%; letter-spacing: 1px; }
+        /* MÜŞTERİ KAYIT EKRANI (MODAL) */
+        #entry-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 9999; }
+        .modal-box { background: #fff; padding: 40px; border-radius: 35px; width: 85%; max-width: 380px; border: 1px solid var(--gold); box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
+        .modal-title { font-family: 'Playfair Display', serif; color: var(--gold); font-size: 1.8rem; margin-bottom: 25px; letter-spacing: 2px; }
+        .modal-box input, .modal-box select { width: 100%; padding: 15px; margin-bottom: 15px; border-radius: 12px; border: 1px solid #eee; background: #fafafa; font-size: 1rem; box-sizing: border-box; font-family: 'Poppins'; }
+        .btn-go { background: var(--gold); color: #fff; border: none; padding: 15px; border-radius: 30px; width: 100%; font-weight: 600; cursor: pointer; text-transform: uppercase; letter-spacing: 2px; }
 
-        /* Ana Ekran */
-        .vogue-header { font-family: 'Playfair Display', serif; font-size: 2.2rem; color: var(--gold); letter-spacing: 4px; text-transform: uppercase; padding: 25px 0; }
-        .container { position: relative; width: 90%; max-width: 440px; margin: 0 auto; border: 6px solid #fff; border-radius: 35px; overflow: hidden; box-shadow: 0 20px 40px rgba(197,160,89,0.1); }
+        /* ANA ANALİZ TASARIMI */
+        .header { padding: 25px 0; }
+        .vogue-logo { font-family: 'Playfair Display', serif; font-size: 2.5rem; color: var(--gold); letter-spacing: 6px; text-transform: uppercase; margin: 0; }
+        .container { position: relative; width: 90%; max-width: 440px; margin: 0 auto; border: 8px solid #fff; border-radius: 40px; overflow: hidden; box-shadow: 0 15px 40px rgba(197,160,89,0.15); background: #000; }
         video { width: 100%; display: block; transform: scaleX(-1); }
-        .cam-switch { position: absolute; top: 15px; right: 15px; background: rgba(255,255,255,0.9); border: none; padding: 10px; border-radius: 50%; cursor: pointer; font-size: 1.2rem; z-index: 10; }
+        .cam-btn { position: absolute; top: 15px; right: 15px; background: rgba(255,255,255,0.9); border: none; padding: 10px; border-radius: 50%; cursor: pointer; font-size: 1.3rem; z-index: 10; }
+        .btn-analyze { background: var(--gold); color: #fff; border: none; padding: 18px 50px; font-size: 1rem; font-weight: 600; cursor: pointer; border-radius: 50px; margin: 20px 0; letter-spacing: 2px; text-transform: uppercase; }
         
-        .btn-analyze { background: var(--gold); color: #fff; border: none; padding: 18px 50px; font-size: 1rem; font-weight: 600; cursor: pointer; border-radius: 50px; margin: 20px 0; letter-spacing: 2px; }
-        #result-box { display: none; width: 85%; max-width: 450px; margin: 20px auto; padding: 30px; background: #fff; border-radius: 20px; border: 1px solid var(--border); text-align: left; }
-        .res-label { font-weight: 600; color: var(--gold); display: block; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 3px; }
+        #result-box { display: none; width: 85%; max-width: 450px; margin: 20px auto; padding: 30px; background: #fff; border-radius: 25px; border: 1px solid var(--border); text-align: left; animation: slideUp 0.6s ease; }
+        .res-label { font-weight: 600; color: var(--gold); display: block; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 4px; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
 
-    <div id="customer-modal">
-        <div class="modal-content">
-            <div class="modal-title">Müşteri Kaydı</div>
-            <input type="text" id="cust-name" class="modal-input" placeholder="Ad Soyad" required>
-            <input type="number" id="cust-age" class="modal-input" placeholder="Yaş" required>
-            <select id="cust-gender" class="modal-input">
+    <div id="entry-modal">
+        <div class="modal-box">
+            <div class="modal-title">Müşteri Girişi</div>
+            <input type="text" id="m-ad" placeholder="Ad Soyad" required>
+            <input type="number" id="m-yas" placeholder="Yaş" required>
+            <select id="m-cin">
                 <option value="Erkek">Erkek</option>
                 <option value="Kadın">Kadın</option>
             </select>
-            <button class="btn-start-session" onclick="startSession()">Analizi Başlat</button>
+            <button class="btn-go" onclick="initSession()">Kamerayı Etkinleştir</button>
         </div>
     </div>
 
-    <div class="vogue-header">OpticGrid</div>
+    <div class="header"><div class="vogue-logo">OpticGrid</div></div>
 
     <div class="container">
         <video id="input_video" playsinline></video>
-        <button id="switch-btn" class="cam-switch">🔄</button>
+        <button id="cam-switch" class="cam-btn">🔄</button>
     </div>
 
-    <button id="start-btn" class="btn-analyze" style="display:none;">Yüzü Tara</button>
+    <button id="start-btn" class="btn-analyze" style="display:none;">Analizi Başlat</button>
 
     <div id="result-box">
-        <div id="client-summary" style="margin-bottom: 15px; font-weight: 600; color: #999; font-size: 0.8rem; border-bottom: 1px solid #eee; padding-bottom: 10px;"></div>
-        <div style="color: var(--gold); font-family: 'Playfair Display', serif; font-size: 1.4rem; margin-bottom: 15px;">Biyometrik Sonuç</div>
-        <div class="res-item"><span class="res-label">Tespit Edilen Form</span><span id="res-yuz" style="font-size: 1.1rem; font-weight: 600;"></span></div>
-        <div class="res-item" style="margin-top:10px;"><span class="res-label">Öneri</span><span id="res-oneri" style="color: #555; font-size: 0.9rem;"></span></div>
-        <div style="margin-top: 20px; text-align: center;"><a href="/logout" style="font-size: 0.7rem; color: #ccc; text-decoration: none;">Oturumu Kapat</a></div>
+        <div id="m-summary" style="font-size: 0.8rem; color: #999; margin-bottom: 15px; font-style: italic;"></div>
+        <div style="font-family: 'Playfair Display', serif; color: var(--gold); font-size: 1.5rem; margin-bottom: 20px;">Biyometrik Sonuçlar</div>
+        <div class="res-item"><span class="res-label">Yüz Yapısı</span><span id="res-yuz" style="font-size: 1.2rem; font-weight: 600;"></span></div>
+        <div class="res-item" style="margin-top:15px;"><span class="res-label">Optik Tavsiye</span><span id="res-oneri" style="color: #555; font-size: 0.9rem; line-height: 1.6;"></span></div>
+        <div style="text-align: center; margin-top: 30px;"><a href="/logout" style="color: #ccc; font-size: 0.7rem; text-decoration: none;">Güvenli Çıkış</a></div>
     </div>
 
     <script>
-        let clientData = {};
+        let customer = {};
         const videoElement = document.getElementById('input_video');
         const startBtn = document.getElementById('start-btn');
-        let currentFacingMode = 'user';
+        let facingMode = 'user';
 
-        // Formu Onayla ve Kamerayı Aç
-        function startSession() {
-            clientData.name = document.getElementById('cust-name').value;
-            clientData.age = document.getElementById('cust-age').value;
-            clientData.gender = document.getElementById('cust-gender').value;
+        function initSession() {
+            customer.ad = document.getElementById('m-ad').value;
+            customer.yas = document.getElementById('m-yas').value;
+            customer.cin = document.getElementById('m-cin').value;
 
-            if(!clientData.name || !clientData.age) { alert("Lütfen bilgileri doldurun."); return; }
-
-            document.getElementById('customer-modal').style.display = 'none';
+            if(!customer.ad || !customer.yas) return alert("Bilgileri giriniz.");
+            document.getElementById('entry-modal').style.display = 'none';
             startBtn.style.display = 'inline-block';
-            startCamera();
+            setupCamera();
         }
 
-        async function startCamera() {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: currentFacingMode } });
+        async function setupCamera() {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: facingMode } });
             videoElement.srcObject = stream;
             videoElement.play();
             const camera = new Camera(videoElement, {
@@ -91,48 +91,51 @@
             camera.start();
         }
 
+        document.getElementById('cam-switch').addEventListener('click', () => {
+            facingMode = facingMode === 'user' ? 'environment' : 'user';
+            setupCamera();
+        });
+
         const faceMesh = new FaceMesh({locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4/${file}`});
         faceMesh.setOptions({ maxNumFaces: 1, refineLandmarks: true, minDetectionConfidence: 0.7 });
 
-        let lastResults = null;
-        faceMesh.onResults((results) => { lastResults = results; });
-
-        document.getElementById('switch-btn').addEventListener('click', () => {
-            currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
-            startCamera();
-        });
+        let resultsFound = null;
+        faceMesh.onResults((res) => { resultsFound = res; });
 
         startBtn.addEventListener('click', () => {
-            if (!lastResults?.multiFaceLandmarks) return;
-            const lm = lastResults.multiFaceLandmarks[0];
+            if (!resultsFound?.multiFaceLandmarks) return;
+            const lm = resultsFound.multiFaceLandmarks[0];
             const h = videoElement.videoHeight;
             const w = videoElement.videoWidth;
 
-            // 468 Nokta Sömürme (Basit oran hesabı)
-            const y_yuk = Math.sqrt(Math.pow((lm[10].x - lm[152].x)*w, 2));
-            const y_gen = Math.sqrt(Math.pow((lm[234].x - lm[454].x)*w, 2));
-            const oran = y_yuk / y_gen;
+            // 468 NOKTA SÖMÜRÜSÜ: Yükseklik / Genişlik Oranı
+            const dist = (p1, p2) => Math.sqrt(Math.pow((p1.x - p2.x)*w, 2) + Math.pow((p1.y - p2.y)*h, 2));
+            const faceH = dist(lm[10], lm[152]);
+            const faceW = dist(lm[234], lm[454]);
+            const ratio = faceH / faceW;
 
-            let yuz = oran > 1.3 ? "Uzun / Oval" : "Yuvarlak / Kare";
-            let oneri = yuz === "Uzun / Oval" ? "Köşeli ve geniş çerçeveler." : "Oval ve ince metal çerçeveler.";
+            let yuz, oneri;
+            if (ratio > 1.35) {
+                yuz = "Uzun (Oblong)";
+                oneri = "Yüzü kısa göstermek için derinliği olan büyük kare veya geniş çerçeveler tercih edilmeli.";
+            } else if (ratio < 1.18) {
+                yuz = "Yuvarlak / Kare";
+                oneri = "Sert köşeli dikdörtgen çerçeveler yüzü daha zayıf ve dengeli gösterir.";
+            } else {
+                yuz = "Oval (Dengeli)";
+                oneri = "Hemen her form yakışır; ancak geometrik modeller karakter katar.";
+            }
 
-            document.getElementById('client-summary').innerText = `Müşteri: ${clientData.name} | ${clientData.age} Yaş | ${clientData.gender}`;
+            document.getElementById('m-summary').innerText = `Kayıtlı Müşteri: ${customer.ad} (${customer.yas})`;
             document.getElementById('res-yuz').innerText = yuz;
             document.getElementById('res-oneri').innerText = oneri;
             document.getElementById('result-box').style.display = 'block';
             startBtn.style.display = 'none';
 
-            // VERİYİ KAYDET
             fetch('/save_result', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ 
-                    ad: clientData.name, 
-                    yas: clientData.age, 
-                    cinsiyet: clientData.gender, 
-                    yuz_tipi: yuz, 
-                    oneri: oneri 
-                })
+                body: JSON.stringify({ ad: customer.ad, yas: customer.yas, cinsiyet: customer.cin, yuz_tipi: yuz, oneri: oneri })
             });
         });
     </script>
