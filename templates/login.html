@@ -3,28 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OpticGrid | Partner Access</title>
+    <title>OpticGrid | Partner Login</title>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
-        :root { --gold: #C5A059; --cream: #FDFBF7; --border: #E5D5B7; }
+        :root { --gold: #C5A059; --cream: #FDFBF7; }
         body { background: var(--cream); font-family: 'Poppins', sans-serif; height: 100vh; display: flex; align-items: center; justify-content: center; margin: 0; }
-        .login-card { background: #fff; width: 90%; max-width: 400px; padding: 60px 40px; border-radius: 40px; border: 1px solid var(--border); box-shadow: 0 30px 70px rgba(197,160,89,0.15); text-align: center; }
-        .vogue-title { font-family: 'Playfair Display', serif; font-size: 3rem; color: var(--gold); letter-spacing: 8px; margin-bottom: 10px; text-transform: uppercase; }
-        .subtitle { color: #aaa; font-style: italic; margin-bottom: 40px; font-size: 0.8rem; letter-spacing: 2px; }
-        input { width: 100%; padding: 20px; margin-bottom: 20px; border-radius: 15px; border: 1px solid #f0f0f0; background: #fafafa; font-size: 1rem; box-sizing: border-box; transition: 0.3s; }
-        input:focus { border-color: var(--gold); outline: none; background: #fff; box-shadow: 0 0 15px rgba(197,160,89,0.1); }
-        .btn-login { width: 100%; padding: 20px; background: var(--gold); color: #fff; border: none; border-radius: 50px; font-weight: 600; cursor: pointer; text-transform: uppercase; letter-spacing: 3px; transition: 0.4s; margin-top: 10px; }
-        .btn-login:hover { background: #b08b4a; transform: translateY(-3px); box-shadow: 0 10px 20px rgba(197,160,89,0.2); }
+        .login-card { background: #fff; width: 90%; max-width: 400px; padding: 60px 40px; border-radius: 40px; border: 1px solid #E5D5B7; box-shadow: 0 30px 60px rgba(197,160,89,0.1); text-align: center; }
+        .vogue-title { font-family: 'Playfair Display', serif; font-size: 2.8rem; color: var(--gold); letter-spacing: 6px; margin-bottom: 5px; text-transform: uppercase; }
+        .subtitle { color: #999; font-style: italic; margin-bottom: 40px; font-size: 0.8rem; letter-spacing: 2px; }
+        input { width: 100%; padding: 20px; margin-bottom: 20px; border-radius: 15px; border: 1px solid #eee; background: #fafafa; font-size: 1rem; box-sizing: border-box; outline: none; transition: 0.3s; }
+        input:focus { border-color: var(--gold); background: #fff; }
+        .btn-login { width: 100%; padding: 20px; background: var(--gold); color: #fff; border: none; border-radius: 50px; font-weight: 600; cursor: pointer; text-transform: uppercase; letter-spacing: 2px; transition: 0.3s; }
+        .btn-login:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(197,160,89,0.2); }
     </style>
 </head>
 <body>
     <div class="login-card">
         <div class="vogue-title">OpticGrid</div>
-        <div class="subtitle">PREMIUM VISION ANALYSIS</div>
+        <div class="subtitle">PREMIUM SAAS ACCESS</div>
         <form action="/login" method="POST">
-            <input type="text" name="username" placeholder="Kullanıcı Adı" required>
+            <input type="text" name="username" placeholder="Lisans Anahtarı / Kullanıcı Adı" required>
             <input type="password" name="password" placeholder="Şifre" required>
-            <button type="submit" class="btn-login">Giriş Yap</button>
+            <button type="submit" class="btn-login">Sisteme Giriş Yap</button>
         </form>
     </div>
 </body>
