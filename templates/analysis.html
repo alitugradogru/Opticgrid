@@ -3,134 +3,134 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OpticGrid | AI Yüz Analizi</title>
+    <title>OpticGrid | AI Analiz</title>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4/face_mesh.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3/camera_utils.js" crossorigin="anonymous"></script>
-    
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital@1&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
-        :root { --gold: #D4AF37; --dark: #1a1a1a; }
-        body { background-color: var(--dark); color: white; font-family: 'Poppins', sans-serif; margin: 0; overflow-x: hidden; text-align: center; }
-        .vogue-header { font-family: 'Playfair Display', serif; font-size: 2.5rem; letter-spacing: 5px; margin-top: 30px; text-transform: uppercase; color: var(--gold); }
-        .container { position: relative; width: 90%; max-width: 500px; margin: 20px auto; border: 2px solid var(--gold); border-radius: 15px; overflow: hidden; background: #000; }
+        :root { --gold: #D4AF37; --dark: #121212; }
+        body { background: var(--dark); color: #e0e0e0; font-family: 'Poppins', sans-serif; margin: 0; padding-bottom: 50px; }
+        .vogue-header { font-family: 'Playfair Display', serif; font-size: 2.8rem; color: var(--gold); letter-spacing: 4px; margin: 20px 0 5px; text-transform: uppercase; }
+        .container { position: relative; width: 90%; max-width: 450px; margin: 0 auto; border: 1px solid var(--gold); border-radius: 20px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         video { width: 100%; display: block; transform: scaleX(-1); }
-        canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; transform: scaleX(-1); }
-        .btn-analyze { background: var(--gold); color: black; border: none; padding: 15px 40px; font-size: 1rem; font-weight: 600; cursor: pointer; border-radius: 30px; margin: 20px; transition: 0.3s; }
-        .btn-analyze:disabled { background: #555; cursor: not-allowed; }
-        #result-box { display: none; padding: 20px; background: rgba(255,255,255,0.05); margin: 20px auto; width: 80%; border-radius: 10px; border-left: 5px solid var(--gold); }
-        .loading-spinner { display: none; margin: 10px auto; border: 4px solid rgba(255,255,255,0.1); border-left-color: var(--gold); border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; }
+        .btn-analyze { background: var(--gold); color: #000; border: none; padding: 18px 50px; font-size: 1.1rem; font-weight: 600; cursor: pointer; border-radius: 40px; margin: 25px 0; transition: 0.4s; text-transform: uppercase; }
+        .btn-analyze:disabled { background: #444; color: #888; }
+        #result-box { display: none; width: 85%; max-width: 500px; margin: 20px auto; padding: 25px; background: #1e1e1e; border-radius: 15px; border: 1px solid #333; text-align: left; animation: fadeIn 0.8s ease; }
+        .res-title { color: var(--gold); font-size: 1.4rem; border-bottom: 1px solid #333; padding-bottom: 10px; margin-bottom: 15px; font-family: 'Playfair Display', serif; }
+        .res-item { margin-bottom: 15px; line-height: 1.6; }
+        .res-label { font-weight: 600; color: var(--gold); display: block; font-size: 0.85rem; text-transform: uppercase; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .loading-spinner { display: none; margin: 10px auto; border: 3px solid rgba(212,175,55,0.1); border-left-color: var(--gold); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
 
     <div class="vogue-header">OpticGrid</div>
-    <p style="font-style: italic; opacity: 0.8;">Cihaz Üstü Yapay Zeka Analizi</p>
+    <p style="font-style: italic; letter-spacing: 1px; margin-bottom: 20px;">Personalized Eyewear Analysis</p>
 
     <div class="container">
         <video id="input_video" playsinline></video>
-        <canvas id="output_canvas"></canvas>
     </div>
 
     <div id="loading" class="loading-spinner"></div>
-    <button id="start-btn" class="btn-analyze">ANALİZ ET</button>
+    <button id="start-btn" class="btn-analyze" disabled>ANALİZİ BAŞLAT</button>
 
     <div id="result-box">
-        <h3 id="yuz-tipi" style="color: var(--gold); margin-bottom: 5px;"></h3>
-        <p id="oneri-metni" style="font-size: 0.9rem; line-height: 1.6;"></p>
+        <div class="res-title">Analiz Sonuçlarınız</div>
+        <div class="res-item">
+            <span class="res-label">Yüz Tipiniz</span>
+            <span id="res-yuz" style="font-size: 1.2rem; font-weight: 600;"></span>
+        </div>
+        <div class="res-item">
+            <span class="res-label">Size Yakışacak Gözlük Modelleri</span>
+            <span id="res-gozluk"></span>
+        </div>
+        <div class="res-item">
+            <span class="res-label">İdeal Çerçeve Formları</span>
+            <span id="res-cerceve"></span>
+        </div>
+        <div class="res-item">
+            <span class="res-label">Modern Optik Renk Önerisi</span>
+            <span id="res-renk"></span>
+        </div>
     </div>
 
     <script>
         const videoElement = document.getElementById('input_video');
-        const canvasElement = document.getElementById('output_canvas');
-        const canvasCtx = canvasElement.getContext('2d');
         const startBtn = document.getElementById('start-btn');
         const resultBox = document.getElementById('result-box');
         const loading = document.getElementById('loading');
 
-        const userDetails = {
-            ad: "{{ ad }}",
-            yas: "{{ yas }}",
-            cinsiyet: "{{ cinsiyet }}"
-        };
+        const user = { ad: "{{ ad }}", yas: "{{ yas }}", cinsiyet: "{{ cinsiyet }}" };
 
-        // BURASI ÇOK KRİTİK: Sürüm numarasını buraya da ekledik
         const faceMesh = new FaceMesh({locateFile: (file) => {
             return `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4/${file}`;
         }});
 
-        faceMesh.setOptions({
-            maxNumFaces: 1,
-            refineLandmarks: true,
-            minDetectionConfidence: 0.5,
-            minTrackingConfidence: 0.5
-        });
+        faceMesh.setOptions({ maxNumFaces: 1, refineLandmarks: true, minDetectionConfidence: 0.5 });
 
         let lastResults = null;
         faceMesh.onResults((results) => {
             lastResults = results;
-            // Kamera akmaya başladığında buton aktif olur
-            if (results.multiFaceLandmarks) {
-                startBtn.disabled = false;
-            }
+            if (results.multiFaceLandmarks) startBtn.disabled = false;
         });
 
-        // Mobil Safari için playsinline ve düzeltilmiş kamera başlatma
         const camera = new Camera(videoElement, {
-            onFrame: async () => {
-                await faceMesh.send({image: videoElement});
-            },
-            width: 640,
-            height: 480
+            onFrame: async () => { await faceMesh.send({image: videoElement}); },
+            width: 640, height: 480
         });
-        
-        // Kamera hatasını yakalamak için
-        camera.start().catch(err => {
-            alert("Kamera başlatılamadı. Lütfen izin verdiğinizden emin olun.");
-        });
+        camera.start().catch(() => alert("Kamera izni gerekli!"));
 
-        startBtn.addEventListener('click', async () => {
-            if (!lastResults || !lastResults.multiFaceLandmarks) {
-                alert("Yüzünüz henüz tam algılanmadı, lütfen ışığa yaklaşın.");
-                return;
-            }
-
-            startBtn.disabled = true;
+        startBtn.addEventListener('click', () => {
+            if (!lastResults?.multiFaceLandmarks) return;
+            
             loading.style.display = "block";
+            startBtn.style.display = "none";
 
             const lm = lastResults.multiFaceLandmarks[0];
             const h = videoElement.videoHeight;
             const w = videoElement.videoWidth;
 
-            const top = lm[10]; const bottom = lm[152];
-            const left = lm[234]; const right = lm[454];
-
-            const y_yuk = Math.sqrt(Math.pow((top.x - bottom.x)*w, 2) + Math.pow((top.y - bottom.y)*h, 2));
-            const y_gen = Math.sqrt(Math.pow((left.x - right.x)*w, 2) + Math.pow((left.y - right.y)*h, 2));
+            const y_yuk = Math.sqrt(Math.pow((lm[10].x - lm[152].x)*w, 2) + Math.pow((lm[10].y - lm[152].y)*h, 2));
+            const y_gen = Math.sqrt(Math.pow((lm[234].x - lm[454].x)*w, 2) + Math.pow((lm[234].y - lm[454].y)*h, 2));
             const oran = y_yuk / y_gen;
 
-            let res, rnk, oneri;
-            const c = userDetails.cinsiyet;
+            let yuz, modeller, cerceveler, renk;
+            const c = user.cinsiyet;
 
             if (oran > 1.25) {
-                res = "UZUN / OVAL"; rnk = (c === "Erkek" ? "Siyah" : "Rose Gold");
-            } else if (oran > 0.95 && oran < 1.10) {
-                res = "YUVARLAK"; rnk = (c === "Erkek" ? "Lacivert" : "Bordo");
+                yuz = "UZUN / OVAL";
+                modeller = "Wayfarer, Büyük Kare, Aviator (Pilot)";
+                cerceveler = "Geniş gövdeli, yüzü enine dengeleyen kalın çerçeveler.";
+                renk = (c === "Erkek" ? "Mat Siyah veya Koyu Kahve" : "Rose Gold veya Şampanya Tonları");
+            } else if (oran > 0.95 && oran < 1.12) {
+                yuz = "YUVARLAK";
+                modeller = "Dikdörtgen, Keskin Köşeli, Retro Kare";
+                cerceveler = "Yüzü daha ince ve uzun gösterecek köşeli, ince metalik veya asetat çerçeveler.";
+                renk = (c === "Erkek" ? "Lacivert veya Antrasit" : "Bordo veya Klasik Kaplumbağa Deseni");
             } else {
-                res = "KARE / KALP"; rnk = (c === "Erkek" ? "Gümüş" : "Altın");
+                yuz = "KARE / KALP / ELMAS";
+                modeller = "Yuvarlak, Oval, Cat-Eye (Kedi Gözü)";
+                cerceveler = "Sert hatları yumuşatan kavisli kenarlar ve alt kısmı çerçevesiz modeller.";
+                renk = (c === "Erkek" ? "Gümüş veya Fırçalanmış Metal" : "Altın veya Pastel Şeffaf Tonlar");
             }
-            oneri = `Yüz tipiniz ${res}. Size en uygun çerçeveler ${rnk} tonlarındadır.`;
 
-            document.getElementById('yuz-tipi').innerText = res;
-            document.getElementById('oneri-metni').innerText = oneri;
-            resultBox.style.display = "block";
+            // SONUÇLARI ANINDA YAZDIR (Takılma olmaz)
+            document.getElementById('res-yuz').innerText = yuz;
+            document.getElementById('res-gozluk').innerText = modeller;
+            document.getElementById('res-cerceve').innerText = cerceveler;
+            document.getElementById('res-renk').innerText = renk;
+            
             loading.style.display = "none";
+            resultBox.style.display = "block";
 
+            // Kayıt işlemini arka planda sessizce yap (Kullanıcıyı bekletme)
             fetch('/save_result', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ ...userDetails, yuz_tipi: res, oneri: oneri })
-            });
+                body: JSON.stringify({ ...user, yuz_tipi: yuz, oneri: modeller + " - " + renk })
+            }).catch(e => console.log("DB Kayıt Hatası"));
         });
     </script>
 </body>
