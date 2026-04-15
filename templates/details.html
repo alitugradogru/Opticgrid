@@ -1,0 +1,19 @@
+<body style="background-color: #fdf5e6; color: #5d4037; font-family: 'Segoe UI', Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0;">
+    <div style="background: #ffffff; padding: 40px; border-radius: 40px; box-shadow: 0 15px 35px rgba(0,0,0,0.05); text-align: center; border: 1px solid #eee8aa; width: 400px;">
+        <h2 style="color: #bc8f8f; font-weight: 300; margin-bottom: 25px; letter-spacing: 2px;">MÜŞTERİ KAYIT</h2>
+        <form action="/start_analysis" method="post">
+            <input name="ad" placeholder="Müşteri Ad Soyad" required style="width: 100%; padding: 15px; margin-bottom: 15px; border-radius: 12px; border: 1px solid #f5f5dc; background: #fafafa; outline: none; box-sizing: border-box;">
+            <input type="number" name="yas" placeholder="Yaş" required style="width: 100%; padding: 15px; margin-bottom: 15px; border-radius: 12px; border: 1px solid #f5f5dc; background: #fafafa; outline: none; box-sizing: border-box;">
+            
+            <select name="cinsiyet" required style="width: 100%; padding: 15px; margin-bottom: 25px; border-radius: 12px; border: 1px solid #f5f5dc; background: #fafafa; outline: none; color: #5d4037;">
+                <option value="" disabled selected>Cinsiyet Seçiniz</option>
+                <option value="Erkek">Erkek</option>
+                <option value="Kadın">Kadın</option>
+            </select>
+
+            <button type="submit" style="width: 100%; padding: 18px; background: #bc8f8f; color: white; border: none; border-radius: 15px; cursor: pointer; font-size: 1em; font-weight: 600; box-shadow: 0 6px 20px rgba(188, 143, 143, 0.3);">
+                ANALİZE HAZIRLAN
+            </button>
+        </form>
+    </div>
+</body>

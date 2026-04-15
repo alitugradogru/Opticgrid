@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>OpticGrid - Müşteri Arşivi</title>
+</head>
+<body style="background-color: #fdf5e6; color: #5d4037; font-family: 'Segoe UI', sans-serif; padding: 40px;">
+    <div style="max-width: 1100px; margin: auto; background: white; padding: 30px; border-radius: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); border: 1px solid #eee8aa;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+            <h1 style="color: #bc8f8f; margin: 0; letter-spacing: 2px;">OPTICGRID ARŞİV</h1>
+            <a href="/" style="text-decoration: none; color: #bc8f8f; font-weight: bold; border: 1px solid #bc8f8f; padding: 10px 20px; border-radius: 10px;">YENİ KAYIT</a>
+        </div>
+        <table style="width: 100%; border-collapse: collapse; text-align: left;">
+            <thead>
+                <tr style="background-color: #fffcf5; border-bottom: 2px solid #eee8aa;">
+                    <th style="padding: 15px;">Müşteri</th>
+                    <th style="padding: 15px;">Yaş / Cinsiyet</th>
+                    <th style="padding: 15px;">Yüz Tipi</th>
+                    <th style="padding: 15px;">Analiz Özeti</th>
+                    <th style="padding: 15px;">Tarih</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for m in musteriler %}
+                <tr style="border-bottom: 1px solid #f9f9f9;">
+                    <td style="padding: 15px;"><b>{{ m[0] }}</b></td>
+                    <td style="padding: 15px;">{{ m[1] }} / {{ m[2] }}</td>
+                    <td style="padding: 15px;"><span style="background: #fdf5e6; padding: 5px 10px; border-radius: 5px; color: #8b4513; font-size: 0.85em;">{{ m[3] }}</span></td>
+                    <td style="padding: 15px; font-size: 0.85em; max-width: 300px; color: #666;">{{ m[4] }}</td>
+                    <td style="padding: 15px; font-size: 0.8em; color: #999;">{{ m[5] }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>
