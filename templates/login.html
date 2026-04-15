@@ -1,19 +1,105 @@
-<body style="background-color: #fdf5e6; color: #5d4037; font-family: 'Segoe UI', Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0;">
-    <div style="background: #ffffff; padding: 50px; border-radius: 40px; box-shadow: 0 15px 35px rgba(0,0,0,0.05); text-align: center; border: 1px solid #eee8aa; width: 380px;">
-        <h1 style="color: #bc8f8f; font-weight: 300; letter-spacing: 4px; margin-bottom: 5px; text-transform: uppercase;">OpticGrid</h1>
-        <p style="font-size: 0.8em; color: #a0a0a0; margin-bottom: 40px; letter-spacing: 1px;">PREMIUM OPTICAL ANALYSIS</p>
-        
-        <form action="/check_login" method="post">
-            <div style="margin-bottom: 20px;">
-                <input name="user" placeholder="Kullanıcı Adı" style="width: 100%; padding: 18px; border-radius: 15px; border: 1px solid #f5f5dc; background: #fafafa; outline: none; box-sizing: border-box; font-size: 0.9em;">
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpticGrid | Partner Login</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root { --gold: #D4AF37; --cream: #F5F5DC; --dark: #121212; }
+        body { 
+            background: var(--dark); 
+            font-family: 'Poppins', sans-serif; 
+            margin: 0; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            height: 100vh;
+            color: var(--cream);
+        }
+        .login-card {
+            width: 90%;
+            max-width: 450px;
+            padding: 50px 40px;
+            background: #1a1a1a;
+            border: 1px solid var(--gold);
+            border-radius: 30px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.7);
+            text-align: center;
+        }
+        .vogue-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 3rem;
+            color: var(--gold);
+            letter-spacing: 5px;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+        .subtitle {
+            font-style: italic;
+            font-weight: 300;
+            color: #888;
+            margin-bottom: 40px;
+            letter-spacing: 2px;
+        }
+        .input-group { margin-bottom: 25px; text-align: left; }
+        .input-group label {
+            display: block;
+            color: var(--gold);
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+            margin-left: 10px;
+        }
+        input {
+            width: 100%;
+            padding: 20px; /* Giriş alanlarını büyüttük */
+            background: #222;
+            border: 1px solid #333;
+            border-radius: 15px;
+            color: #fff;
+            font-size: 1.1rem;
+            box-sizing: border-box;
+            transition: 0.3s;
+        }
+        input:focus {
+            border-color: var(--gold);
+            outline: none;
+            background: #2a2a2a;
+        }
+        .btn-login {
+            width: 100%;
+            padding: 20px;
+            background: var(--gold);
+            color: #000;
+            border: none;
+            border-radius: 40px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: 0.4s;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        .btn-login:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(212,175,55,0.3); }
+    </style>
+</head>
+<body>
+    <div class="login-card">
+        <div class="vogue-title">OpticGrid</div>
+        <div class="subtitle">B2B Partner Portal</div>
+        <form action="/login" method="POST">
+            <div class="input-group">
+                <label>Kullanıcı Adı</label>
+                <input type="text" name="username" placeholder="Örn: modern_optik" required>
             </div>
-            <div style="margin-bottom: 20px;">
-                <input type="password" name="pass" placeholder="Şifre" style="width: 100%; padding: 18px; border-radius: 15px; border: 1px solid #f5f5dc; background: #fafafa; outline: none; box-sizing: border-box; font-size: 0.9em;">
+            <div class="input-group">
+                <label>Şifre</label>
+                <input type="password" name="password" placeholder="••••••••" required>
             </div>
-            
-            <button type="submit" style="width: 100%; padding: 18px; background: #bc8f8f; color: white; border: none; border-radius: 15px; cursor: pointer; font-size: 1em; font-weight: 600; transition: all 0.4s ease; margin-top: 10px; box-shadow: 0 6px 20px rgba(188, 143, 143, 0.3);">
-                SİSTEMİ BAŞLAT
-            </button>
+            <button type="submit" class="btn-login">Sisteme Giriş Yap</button>
         </form>
     </div>
 </body>
+</html>
