@@ -1,10 +1,11 @@
 from flask import Flask, render_template, request, jsonify
+from flask_cors import CORS
 import sqlite3
 import os
 
 app = Flask(__name__)
+CORS(app) # Telefonlardan gelen kayıt isteklerine izin verir
 
-# --- SADECE VERİTABANI KAYDI ---
 def save_to_db(ad, yas, cinsiyet, yuz, oneri):
     try:
         conn = sqlite3.connect('opticgrid.db')
@@ -25,16 +26,12 @@ def check_login(): return render_template('details.html')
 
 @app.route('/start_analysis', methods=['POST'])
 def start_analysis():
-    # Bilgileri analiz sayfasına aktarıyoruz
-    return render_template('analysis.html', 
-                           ad=request.form.get('ad'), 
-                           yas=request.form.get('yas'), 
-                           cinsiyet=request.form.get('cinsiyet'))
+    return render_template('analysis.html', ad=request.form.get('ad'), yas=request.form.get('yas'), cinsiyet=request.form.get('cinsiyet'))
 
 @app.route('/save_result', methods=['POST'])
 def save_result():
     data = request.json
-    save_to_db(data['ad'], data['yas'], data['cinsiyet'], data['yuz_tipi'], data['oneri'])
+    save_to_db(data.get('ad'), data.get('yas'), data.get('cinsiyet'), data.get('yuz_tipi'), data.get('oneri'))
     return jsonify({'status': 'success'})
 
 if __name__ == '__main__':
