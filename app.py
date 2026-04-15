@@ -5,14 +5,16 @@ from flask import Flask, render_template, request, redirect, url_for, session, j
 app = Flask(__name__)
 app.secret_key = "tugra_elite_2026"
 
-# KULLANICI BİLGİSİ (Kütüphane gibi en üstte)
 ADMIN_USER = "tugra"
 ADMIN_PASS = "1234"
 
 def init_db():
     conn = sqlite3.connect('opticgrid.db')
-    cursor = conn.cursor()
-    cursor.execute("CREATE TABLE IF NOT EXISTS sonuclar (ad TEXT, yuz_tipi TEXT, oneri TEXT, tarih TIMESTAMP DEFAULT CURRENT_TIMESTAMP)")
+    c = conn.cursor()
+    # Tabloyu müşteri bilgilerini de alacak şekilde güncelledik
+    c.execute('''CREATE TABLE IF NOT EXISTS sonuclar 
+                 (id INTEGER PRIMARY KEY AUTOINCREMENT, 
+                  ad TEXT, yas TEXT, cinsiyet TEXT, yuz_tipi TEXT, oneri TEXT, tarih TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
     conn.commit()
     conn.close()
 
@@ -28,7 +30,7 @@ def login():
     if request.form.get('username') == ADMIN_USER and request.form.get('password') == ADMIN_PASS:
         session['logged_in'] = True
         return redirect(url_for('analysis'))
-    return "<h3>Hatalı Giriş</h3>", 401
+    return "Hatalı Giriş", 401
 
 @app.route('/analysis')
 def analysis():
@@ -40,9 +42,9 @@ def save_result():
     if 'logged_in' not in session: return "Unauthorized", 403
     data = request.json
     conn = sqlite3.connect('opticgrid.db')
-    cursor = conn.cursor()
-    cursor.execute("INSERT INTO sonuclar (ad, yuz_tipi, oneri) VALUES (?,?,?)",
-                   (data.get('ad'), data.get('yuz_tipi'), data.get('oneri')))
+    c = conn.cursor()
+    c.execute("INSERT INTO sonuclar (ad, yas, cinsiyet, yuz_tipi, oneri) VALUES (?,?,?,?,?)",
+               (data.get('ad'), data.get('yas'), data.get('cinsiyet'), data.get('yuz_tipi'), data.get('oneri')))
     conn.commit()
     conn.close()
     return jsonify({"status": "success"})
