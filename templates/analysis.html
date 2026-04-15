@@ -3,71 +3,67 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OpticGrid | Pro AI Analysis</title>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4/face_mesh.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3/camera_utils.js" crossorigin="anonymous"></script>
+    <title>OpticGrid | Elite VIP</title>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4/face_mesh.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3/camera_utils.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
-        :root { --gold: #D4AF37; --dark: #121212; }
-        body { background: var(--dark); color: #e0e0e0; font-family: 'Poppins', sans-serif; margin: 0; padding-bottom: 50px; text-align: center; }
-        .vogue-header { font-family: 'Playfair Display', serif; font-size: 2.5rem; color: var(--gold); letter-spacing: 4px; margin: 25px 0 5px; text-transform: uppercase; }
-        .container { position: relative; width: 92%; max-width: 450px; margin: 0 auto; border: 1px solid var(--gold); border-radius: 20px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5); background: #000; }
+        :root { --gold: #C5A059; --cream: #FDFBF7; --text: #2C2C2C; --border: #E5D5B7; }
+        body { background: var(--cream); color: var(--text); font-family: 'Poppins', sans-serif; margin: 0; text-align: center; }
+        .vogue-header { font-family: 'Playfair Display', serif; font-size: 2.5rem; color: var(--gold); letter-spacing: 5px; text-transform: uppercase; padding-top: 30px; margin: 0; }
+        .container { position: relative; width: 90%; max-width: 440px; margin: 20px auto; border: 8px solid #fff; border-radius: 40px; overflow: hidden; box-shadow: 0 20px 40px rgba(197,160,89,0.15); background: #000; }
         video { width: 100%; display: block; transform: scaleX(-1); }
-        .btn-analyze { background: var(--gold); color: #000; border: none; padding: 18px 50px; font-size: 1.1rem; font-weight: 600; cursor: pointer; border-radius: 40px; margin: 25px 0; transition: 0.4s; text-transform: uppercase; letter-spacing: 1.5px; }
-        .btn-analyze:disabled { background: #444; color: #888; cursor: not-allowed; }
-        #result-box { display: none; width: 88%; max-width: 500px; margin: 20px auto; padding: 25px; background: #1e1e1e; border-radius: 15px; border: 1px solid #333; text-align: left; animation: slideUp 0.6s ease-out; border-left: 5px solid var(--gold); }
-        .res-title { color: var(--gold); font-size: 1.3rem; border-bottom: 1px solid #333; padding-bottom: 10px; margin-bottom: 15px; font-family: 'Playfair Display', serif; letter-spacing: 1px; }
-        .res-item { margin-bottom: 18px; line-height: 1.5; }
-        .res-label { font-weight: 600; color: var(--gold); display: block; font-size: 0.8rem; text-transform: uppercase; margin-bottom: 4px; letter-spacing: 1px; }
-        @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
-        .loading-spinner { display: none; margin: 15px auto; border: 3px solid rgba(212,175,55,0.1); border-left-color: var(--gold); border-radius: 50%; width: 45px; height: 45px; animation: spin 1s linear infinite; }
+        
+        /* Kamera Değiştirme Tuşu */
+        .cam-switch { position: absolute; top: 20px; right: 20px; background: rgba(255,255,255,0.8); border: none; padding: 10px; border-radius: 50%; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+        
+        .btn-analyze { background: var(--gold); color: #fff; border: none; padding: 20px 60px; font-size: 1.1rem; font-weight: 600; cursor: pointer; border-radius: 50px; margin: 25px 0; transition: 0.4s; text-transform: uppercase; letter-spacing: 2px; }
+        #result-box { display: none; width: 85%; max-width: 480px; margin: 20px auto; padding: 35px; background: #fff; border-radius: 25px; border: 1px solid var(--border); text-align: left; animation: fadeIn 0.8s ease; }
+        .res-title { color: var(--gold); font-size: 1.4rem; border-bottom: 2px solid var(--cream); padding-bottom: 12px; margin-bottom: 15px; font-family: 'Playfair Display', serif; }
+        .res-label { font-weight: 600; color: var(--gold); display: block; font-size: 0.8rem; text-transform: uppercase; margin-bottom: 5px; }
+        .product-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
+        .product-card { border: 1px solid #f2f2f2; border-radius: 15px; padding: 12px; text-align: center; background: #fff; }
+        .product-card img { width: 100%; border-radius: 10px; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .loading-spinner { display: none; margin: 20px auto; border: 4px solid #f3f3f3; border-top: 4px solid var(--gold); border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
-
     <div class="vogue-header">OpticGrid</div>
-    <p style="font-style: italic; letter-spacing: 2px; margin-bottom: 20px; color: #888; font-size: 0.9rem;">Advanced Biometric Analysis</p>
+    <p style="font-style: italic; color: #999; letter-spacing: 2px; font-size: 0.8rem;">Elite Biometric Analysis</p>
 
     <div class="container">
         <video id="input_video" playsinline></video>
+        <button id="switch-btn" class="cam-switch">🔄</button>
     </div>
 
     <div id="loading" class="loading-spinner"></div>
     <button id="start-btn" class="btn-analyze" disabled>Analizi Başlat</button>
 
     <div id="result-box">
-        <div class="res-title">Biyometrik Sonuçlar</div>
-        <div class="res-item">
-            <span class="res-label">Algılanan Yüz Geometrisi</span>
-            <span id="res-yuz" style="font-size: 1.2rem; font-weight: 600; color: #fff;"></span>
-        </div>
-        <div class="res-item">
-            <span class="res-label">Optik Model Önerileri</span>
-            <span id="res-gozluk" style="color: #bbb; font-size: 0.95rem;"></span>
-        </div>
-        <div class="res-item">
-            <span class="res-label">Mimari Çerçeve Analizi</span>
-            <span id="res-cerceve" style="color: #bbb; font-size: 0.95rem;"></span>
-        </div>
-        <div class="res-item">
-            <span class="res-label">Modern Optik Renk Paleti</span>
-            <span id="res-renk" style="color: #bbb; font-size: 0.95rem;"></span>
-        </div>
+        <div class="res-title">Biyometrik Rapor</div>
+        <div class="res-item"><span class="res-label">Yüz Geometrisi</span><span id="res-yuz" style="font-size: 1.2rem; font-weight: 600;"></span></div>
+        <div class="res-item"><span class="res-label">Mimari Öneri</span><span id="res-oneri" style="color: #555; font-size: 0.95rem; font-weight: 400;"></span></div>
+        <div class="res-item"><span class="res-label">İdeal Materyal</span><span id="res-materyal" style="color: #555; font-size: 0.95rem;"></span></div>
+        
+        <hr style="border: 0.5px solid #eee; margin: 25px 0;">
+        <span class="res-label">Sizin İçin Seçtiklerimiz</span>
+        <div id="product-list" class="product-grid"></div>
     </div>
 
     <script>
         const videoElement = document.getElementById('input_video');
         const startBtn = document.getElementById('start-btn');
+        const switchBtn = document.getElementById('switch-btn');
         const resultBox = document.getElementById('result-box');
-        const loading = document.getElementById('loading');
+        let currentFacingMode = 'user';
 
-        const user = { ad: "{{ ad }}", yas: "{{ yas }}", cinsiyet: "{{ cinsiyet }}" };
+        function getDist(p1, p2, w, h) {
+            return Math.sqrt(Math.pow((p1.x - p2.x)*w, 2) + Math.pow((p1.y - p2.y)*h, 2));
+        }
 
-        const faceMesh = new FaceMesh({locateFile: (file) => {
-            return `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4/${file}`;
-        }});
-
+        const faceMesh = new FaceMesh({locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4/${file}`});
         faceMesh.setOptions({ maxNumFaces: 1, refineLandmarks: true, minDetectionConfidence: 0.7 });
 
         let lastResults = null;
@@ -76,84 +72,81 @@
             if (results.multiFaceLandmarks) startBtn.disabled = false;
         });
 
-        const camera = new Camera(videoElement, {
-            onFrame: async () => { await faceMesh.send({image: videoElement}); },
-            width: 640, height: 480
-        });
-        camera.start();
-
-        // İki nokta arası mesafe ölçer (Öklid mesafesi)
-        function getDist(p1, p2, w, h) {
-            return Math.sqrt(Math.pow((p1.x - p2.x)*w, 2) + Math.pow((p1.y - p2.y)*h, 2));
+        async function startCamera() {
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: currentFacingMode }
+            });
+            videoElement.srcObject = stream;
+            videoElement.play();
+            const camera = new Camera(videoElement, {
+                onFrame: async () => { await faceMesh.send({image: videoElement}); },
+                width: 640, height: 480
+            });
+            camera.start();
         }
+
+        switchBtn.addEventListener('click', () => {
+            currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
+            startCamera();
+        });
+
+        startCamera();
 
         startBtn.addEventListener('click', () => {
             if (!lastResults?.multiFaceLandmarks) return;
-            
-            loading.style.display = "block";
+            document.getElementById('loading').style.display = "block";
             startBtn.style.display = "none";
 
             const lm = lastResults.multiFaceLandmarks[0];
             const h = videoElement.videoHeight;
             const w = videoElement.videoWidth;
 
-            // --- PROFESYONEL ÖLÇÜM SETİ ---
-            const faceHeight = getDist(lm[10], lm[152], w, h);      // Alın-Çene
-            const cheekWidth = getDist(lm[234], lm[454], w, h);    // Elmacık kemikleri
-            const foreheadWidth = getDist(lm[103], lm[332], w, h); // Alın genişliği
-            const jawWidth = getDist(lm[132], lm[361], w, h);      // Çene hattı genişliği
+            // 468 NOKTA SÖMÜRME ANALİZİ
+            const y_yuk = getDist(lm[10], lm[152], w, h);      // Alın-Çene
+            const y_gen = getDist(lm[234], lm[454], w, h);    // Elmacıklar
+            const alin_gen = getDist(lm[103], lm[332], w, h); // Alın
+            const cene_gen = getDist(lm[132], lm[361], w, h); // Çene Genişliği
 
-            const ratioHV = faceHeight / cheekWidth; // Yükseklik / Genişlik Oranı
-            const ratioFJ = foreheadWidth / jawWidth; // Alın / Çene Oranı
+            const oran = y_yuk / y_gen;
+            const oran_alin_cene = alin_gen / cene_gen;
 
-            let yuz, modeller, cerceveler, renk;
-            const c = user.cinsiyet;
+            let yuz, oneri, materyal;
 
-            // --- MULTİ-PARAMETRELİ KARAR ALGORİTMASI ---
-            if (ratioHV > 1.42) {
+            if (oran > 1.45) {
                 yuz = "UZUN (OBLONG)";
-                modeller = "Oversized Kare, Geniş Wayfarer, Aviator";
-                cerceveler = "Yüzün dikey algısını kırmak için alt kısmı derin, kalın saplı çerçeveler.";
-                renk = (c === "Erkek" ? "Mat Siyah / Koyu Füme" : "Bordo / Havana");
-            } 
-            else if (ratioHV < 1.15 && ratioFJ > 1.05) {
+                oneri = "Yüzün dikey hattını dengelemek için derinliği olan Büyük Kare veya Geniş Wayfarer modelleri seçmelisiniz.";
+                materyal = "Kalın asetat ve kemik çerçeveler yüzünüzde daha dolgun bir duruş sağlar.";
+            } else if (oran < 1.15 && oran_alin_cene > 1.1) {
                 yuz = "KALP / ÜÇGEN";
-                modeller = "Rimless (Çerçevesiz), İnce Oval, Cat-Eye";
-                cerceveler = "Geniş alnı dengelemek için alt kısmı daha geniş veya çerçevesiz hafif modeller.";
-                renk = (c === "Erkek" ? "Gümüş / Açık Mavi" : "Rose Gold / Şeffaf Pembe");
-            }
-            else if (ratioHV < 1.15 && Math.abs(cheekWidth - jawWidth) < 20) {
+                oneri = "Alın genişliğini dengelemek için alt kısmı geniş olan Oval veya Cat-Eye modelleri tercih edilmelidir.";
+                materyal = "İnce metalik çerçeveler veya çerçevesiz (rimless) modeller üst yüzü hafifletir.";
+            } else if (oran < 1.15 && Math.abs(y_gen - cene_gen) < 15) {
                 yuz = "KARE / KÖŞELİ";
-                modeller = "Yuvarlak (Panto), Oval, Yumuşak Köşeli Retro";
-                cerceveler = "Sert çene hatlarını yumuşatmak için ince metalik, dairesel formlar.";
-                renk = (c === "Erkek" ? "Antrasit / Gunmetal" : "Altın / Pastel Yeşil");
-            }
-            else if (ratioHV < 1.15) {
+                oneri = "Sert yüz hatlarını yumuşatmak için yuvarlak (Panto) veya kavisli kenarlı modeller idealdir.";
+                materyal = "İnce gold/gümüş metal çerçeveler sert hatları asaletle dengeler.";
+            } else if (oran < 1.15) {
                 yuz = "YUVARLAK";
-                modeller = "Keskin Dikdörtgen, Geometrik, Kare";
-                cerceveler = "Yüzü daha zayıf ve uzun göstermek için belirgin köşeli ve koyu renkli konturlar.";
-                renk = (c === "Erkek" ? "Klasik Siyah / Lacivert" : "Koyu Kaplumbağa / Granit");
-            }
-            else {
+                oneri = "Yüzü daha ince ve uzun göstermek için keskin köşeli Dikdörtgen veya Geometrik çerçeveler seçin.";
+                materyal = "Koyu renkli mat asetat çerçeveler yüzünüze karakter katar.";
+            } else {
                 yuz = "OVAL (DENGELİ)";
-                modeller = "Hemen hemen her model (Wayfarer, Aviator, Clubmaster)";
-                cerceveler = "Yüzün doğal oranlarını koruyan, kaş çizgisini takip eden dengeli modeller.";
-                renk = (c === "Erkek" ? "Koyu Kahve / Siyah" : "Şampanya / Fildişi");
+                oneri = "Doğal dengenizi korumak için her tür çerçeveyi kullanabilirsiniz; ancak Aviator ve Clubmaster modelleri favorimizdir.";
+                materyal = "Hafif titanyum veya şeffaf kristal tonları modern bir duruş sergiler.";
             }
 
             document.getElementById('res-yuz').innerText = yuz;
-            document.getElementById('res-gozluk').innerText = modeller;
-            document.getElementById('res-cerceve').innerText = cerceveler;
-            document.getElementById('res-renk').innerText = renk;
+            document.getElementById('res-oneri').innerText = oneri;
+            document.getElementById('res-materyal').innerText = materyal;
             
-            loading.style.display = "none";
+            document.getElementById('loading').style.display = "none";
             resultBox.style.display = "block";
-
+            
+            // Veri Kaydetme Sinyali
             fetch('/save_result', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ ...user, yuz_tipi: yuz, oneri: modeller })
-            }).catch(e => console.log("DB Kayıt Hatası"));
+                body: JSON.stringify({ ad: "VIP Müşteri", yuz_tipi: yuz, oneri: oneri })
+            });
         });
     </script>
 </body>
