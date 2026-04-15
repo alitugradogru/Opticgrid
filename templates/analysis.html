@@ -4,8 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>OpticGrid | AI Yüz Analizi</title>
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4/face_mesh.js" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4/face_mesh.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3/camera_utils.js" crossorigin="anonymous"></script>
+    
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital@1&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
         :root { --gold: #D4AF37; --dark: #1a1a1a; }
@@ -27,7 +28,7 @@
     <p style="font-style: italic; opacity: 0.8;">Cihaz Üstü Yapay Zeka Analizi</p>
 
     <div class="container">
-        <video id="input_video"></video>
+        <video id="input_video" playsinline></video>
         <canvas id="output_canvas"></canvas>
     </div>
 
@@ -47,15 +48,15 @@
         const resultBox = document.getElementById('result-box');
         const loading = document.getElementById('loading');
 
-        // Kullanıcı verileri (Flask'tan geliyor)
         const userDetails = {
             ad: "{{ ad }}",
             yas: "{{ yas }}",
             cinsiyet: "{{ cinsiyet }}"
         };
 
+        // BURASI ÇOK KRİTİK: Sürüm numarasını buraya da ekledik
         const faceMesh = new FaceMesh({locateFile: (file) => {
-            return `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`;
+            return `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4/${file}`;
         }});
 
         faceMesh.setOptions({
@@ -68,21 +69,29 @@
         let lastResults = null;
         faceMesh.onResults((results) => {
             lastResults = results;
-            canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+            // Kamera akmaya başladığında buton aktif olur
             if (results.multiFaceLandmarks) {
-                // Burada istersen yüze çizim yapabilirsin (Vogue stili nokta çizimleri)
+                startBtn.disabled = false;
             }
         });
 
+        // Mobil Safari için playsinline ve düzeltilmiş kamera başlatma
         const camera = new Camera(videoElement, {
-            onFrame: async () => { await faceMesh.send({image: videoElement}); },
-            width: 640, height: 480
+            onFrame: async () => {
+                await faceMesh.send({image: videoElement});
+            },
+            width: 640,
+            height: 480
         });
-        camera.start();
+        
+        // Kamera hatasını yakalamak için
+        camera.start().catch(err => {
+            alert("Kamera başlatılamadı. Lütfen izin verdiğinizden emin olun.");
+        });
 
         startBtn.addEventListener('click', async () => {
             if (!lastResults || !lastResults.multiFaceLandmarks) {
-                alert("Yüzünüz henüz algılanmadı, lütfen kameraya yaklaşın.");
+                alert("Yüzünüz henüz tam algılanmadı, lütfen ışığa yaklaşın.");
                 return;
             }
 
@@ -93,7 +102,6 @@
             const h = videoElement.videoHeight;
             const w = videoElement.videoWidth;
 
-            // MediaPipe JS Landmark Hesaplama
             const top = lm[10]; const bottom = lm[152];
             const left = lm[234]; const right = lm[454];
 
@@ -113,13 +121,11 @@
             }
             oneri = `Yüz tipiniz ${res}. Size en uygun çerçeveler ${rnk} tonlarındadır.`;
 
-            // Ekranda Göster
             document.getElementById('yuz-tipi').innerText = res;
             document.getElementById('oneri-metni').innerText = oneri;
             resultBox.style.display = "block";
             loading.style.display = "none";
 
-            // Veritabanına Kaydetmek için Render'a gönder (Hafif istek)
             fetch('/save_result', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
