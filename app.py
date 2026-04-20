@@ -1,46 +1,77 @@
-import streamlit as st
-import cv2
-import numpy as np
+import sqlite3
+import os
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify
 
-# Sayfa Yapılandırması
-st.set_page_config(page_title="OpticGrid | Admin Login", layout="centered")
+app = Flask(__name__)
+app.secret_key = "tugra_premium_key_2026" # Güvenlik için anahtar
 
-# --- SESSION STATE KONTROLÜ ---
-if 'logged_in' not in st.session_state:
-    st.session_state.logged_in = False
+# SaaS Satış Bilgileri (Bunu ileride veritabanına bağlayabiliriz)
+ADMIN_USER = "tugra"
+ADMIN_PASS = "1234"
 
-# --- 1. AŞAM: ADMIN GİRİŞ EKRANI (KALDIRMAK İSTEDİĞİN KISIM BUYDU) ---
-if not st.session_state.logged_in:
-    st.title("OpticGrid Admin Paneli")
-    st.subheader("Lütfen giriş yapın")
+def init_db():
+    conn = sqlite3.connect('opticgrid.db')
+    c = conn.cursor()
+    c.execute('''CREATE TABLE IF NOT EXISTS sonuclar 
+                 (id INTEGER PRIMARY KEY AUTOINCREMENT, 
+                  ad TEXT, yas TEXT, cinsiyet TEXT, yuz_tipi TEXT, 
+                  form TEXT, kopru TEXT, renk TEXT, oneri TEXT, 
+                  tarih TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
+    conn.commit()
+    conn.close()
+
+init_db()
+
+# SİSTEMİN KALBİ: Giriş kontrolü
+@app.route('/')
+def index():
+    # Eğer zaten giriş yapılmışsa doğrudan analize gönder
+    if session.get('logged_in'):
+        return redirect(url_for('analysis'))
+    # Giriş yapılmamışsa MUTLAKA login sayfasını göster
+    return render_template('login.html')
+
+@app.route('/login', methods=['POST'])
+def login():
+    # Satıcı (senin) belirlediğin kullanıcı adı ve şifre kontrolü
+    user = request.form.get('username')
+    pw = request.form.get('password')
     
-    with st.form("login_form"):
-        username = st.text_input("Kullanıcı Adı")
-        password = st.text_input("Şifre", type="password")
-        login_button = st.form_submit_button("Giriş Yap")
-        
-        if login_button:
-            # Örnek basit kontrol
-            if username == "admin" and password == "1234":
-                st.session_state.logged_in = True
-                st.success("Giriş başarılı!")
-                st.rerun()
-            else:
-                st.error("Hatalı kullanıcı adı veya şifre.")
+    if user == ADMIN_USER and pw == ADMIN_PASS:
+        session['logged_in'] = True
+        return redirect(url_for('analysis'))
+    else:
+        # Hatalı girişte sayfayı yenileyip hata mesajı verebilirsin
+        return "Erişim Reddedildi: Geçersiz Lisans Bilgileri", 401
 
-# --- 2. AŞAM: SİSTEM ANA EKRANI ---
-else:
-    st.sidebar.button("Çıkış Yap", on_click=lambda: st.session_state.update({"logged_in": False}))
-    st.title("OpticGrid | Optik Analiz Sistemi")
+@app.route('/analysis')
+def analysis():
+    # GÜVENLİK DUVARI: Burası çok kritik.
+    # Kullanıcı login olmadan bu URL'i el yazıyla yazsa bile giremez.
+    if not session.get('logged_in'):
+        return redirect(url_for('index'))
+    return render_template('analysis.html')
+
+@app.route('/save_result', methods=['POST'])
+def save_result():
+    if not session.get('logged_in'):
+        return jsonify({"status": "error", "message": "Yetkisiz erişim"}), 403
     
-    tab1, tab2 = st.tabs(["Yüz Analizi", "Müşteri Kayıtları"])
-    
-    with tab1:
-        st.write("### Canlı Kamera Analizi")
-        img_file = st.camera_input("Analiz Başlat")
-        if img_file:
-            st.info("Görüntü işleniyor...")
-            
-    with tab2:
-        st.write("### Kayıtlı Müşteriler")
-        st.write("Henüz kayıtlı müşteri bulunmuyor.")
+    data = request.json
+    conn = sqlite3.connect('opticgrid.db')
+    c = conn.cursor()
+    c.execute("""INSERT INTO sonuclar (ad, yas, cinsiyet, yuz_tipi, form, kopru, renk, oneri) 
+                 VALUES (?,?,?,?,?,?,?,?)""",
+               (data.get('ad'), data.get('yas'), data.get('cinsiyet'), data.get('yuz_tipi'), 
+                data.get('form'), data.get('kopru'), data.get('renk'), data.get('oneri')))
+    conn.commit()
+    conn.close()
+    return jsonify({"status": "success"})
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('index'))
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)
