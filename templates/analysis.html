@@ -33,7 +33,7 @@
         .res-title { font-family: 'Playfair Display', serif; color: var(--gold); font-size: 1.8rem; text-align: center; margin-bottom: 30px; }
         table { width: 100%; border-collapse: collapse; }
         td { padding: 15px 0; border-bottom: 1px solid #f5f5f5; font-size: 0.95rem; }
-        .label { color: var(--gold); font-weight: 600; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 1px; }
+        .label { color: var(--gold); font-weight: 600; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 1px; vertical-align: top; width: 35%; }
         .value { text-align: right; font-weight: 500; }
         .note-box { background: var(--cream); padding: 20px; border-left: 5px solid var(--gold); margin-top: 25px; border-radius: 0 15px 15px 0; font-size: 0.9rem; line-height: 1.6; }
     </style>
@@ -66,9 +66,9 @@
             <div id="m-summary" style="text-align: center; color: #999; margin-bottom: 25px; font-style: italic;"></div>
             <table>
                 <tr><td class="label">Yüz Geometrisi</td><td id="res-yuz" class="value">-</td></tr>
-                <tr><td class="label">İdeal Form</td><td id="res-form" class="value">-</td></tr>
-                <tr><td class="label">Köprü Tipi</td><td id="res-kopru" class="value">-</td></tr>
-                <tr><td class="label">Renk Paleti</td><td id="res-renk" class="value">-</td></tr>
+                <tr><td class="label">Stil Kimliği</td><td id="res-stil" class="value" style="color: var(--gold); font-weight: 600;">-</td></tr>
+                <tr><td class="label">Yüz Morfolojisi</td><td id="res-morfoloji" class="value" style="text-align: left; display: block; font-size: 0.85rem; margin-top: 5px; color: #555; line-height: 1.4;">-</td></tr>
+                <tr><td class="label">Köprü Mimarisi</td><td id="res-kopru" class="value" style="text-align: left; display: block; font-size: 0.85rem; margin-top: 5px; color: #555; line-height: 1.4;">-</td></tr>
             </table>
             <div class="note-box">
                 <strong style="color: var(--gold);">Modern Optik Önerisi:</strong><br>
@@ -143,7 +143,7 @@
 
             const dist = (p1, p2) => Math.sqrt(Math.pow((p1.x - p2.x)*w, 2) + Math.pow((p1.y - p2.y)*h, 2));
             
-            // Gerçek milimetrik oranların tespiti (HATA DÜZELTİLDİ)
+            // Gerçek milimetrik oranların tespiti
             const yuz_uzunlugu = dist(lm[10], lm[152]);
             const elmacik_genisligi = dist(lm[234], lm[454]);
             const alin_genisligi = dist(lm[109], lm[338]);
@@ -168,10 +168,11 @@
                 const result = await response.json();
 
                 if (result.status === "success") {
+                    // Python'dan gelen zenginleştirilmiş premium sonuçları basıyoruz
                     document.getElementById('res-yuz').innerText = result.yuz_tipi;
-                    document.getElementById('res-form').innerText = result.form;
-                    document.getElementById('res-kopru').innerText = result.kopru;
-                    document.getElementById('res-renk').innerText = result.renk;
+                    document.getElementById('res-stil').innerText = result.stil_kimligi;
+                    document.getElementById('res-morfoloji').innerText = result.morfoloji_denge;
+                    document.getElementById('res-kopru').innerText = result.kopru_mimarisi;
                     document.getElementById('res-oneri').innerText = result.oneri;
                     document.getElementById('m-summary').innerText = `Müşteri: ${customer.ad} | Yaş: ${customer.yas}`;
                     
