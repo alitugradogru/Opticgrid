@@ -8,11 +8,24 @@ app.secret_key = "tugra_premium_key_2026"
 ADMIN_USER = "tugra"
 ADMIN_PASS = "1234"
 
+# ==============================================================================
+# [GEÇİCİ ÇÖZÜM]: 1. YOL - ESKİ VERİTABANINI TEMİZLEME
+# Veritabanı sütunları değiştiği için Render'daki eski dosyayı zorla siliyoruz.
+# Site bir kez hatasız açıldıktan sonra isterseniz bu bloğu kaldırabilirsiniz.
+DB_NAME = 'opticgrid.db'
+if os.path.exists(DB_NAME):
+    try:
+        os.remove(DB_NAME)
+        print(f"Başarılı: Eski veritabanı ({DB_NAME}) silindi, sıfırdan oluşturulacak.")
+    except Exception as e:
+        print(f"Hata: Eski veritabanı silinemedi, manuel müdahale gerekebilir: {e}")
+# ==============================================================================
+
 def init_db():
-    conn = sqlite3.connect('opticgrid.db')
+    conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
-    # Yeni zengin analiz sütunlarını veritabanına ekliyoruz
-    c.execute('''CREATE TABLE IF NOT EXISTS sonuclar 
+    # Zenginleştirilmiş premium analiz sütunlarıyla jilet gibi yeni bir tablo açıyoruz
+    c.execute(f'''CREATE TABLE IF NOT EXISTS sonuclar 
                  (id INTEGER PRIMARY KEY AUTOINCREMENT, 
                   ad TEXT, yas TEXT, cinsiyet TEXT, yuz_tipi TEXT, 
                   stil_kimligi TEXT, morfoloji_denge TEXT, kopru_mimarisi TEXT, oneri TEXT,
@@ -20,18 +33,26 @@ def init_db():
     conn.commit()
     conn.close()
 
+# Uygulama başlarken veritabanı kontrolünü yap
 init_db()
 
+# ------------------------------------------------------------------------------
+# ROTALAR (ROUTES)
+# ------------------------------------------------------------------------------
+
+# 1. ANA SAYFA ARTIK ŞIK LANDING PAGE OLDU
 @app.route('/')
 def index():
     return render_template('landing.html')
 
+# 2. ESKİ GİRİŞ EKRANINI BU YENİ URL'E TAŞIDIK
 @app.route('/login_page')
 def login_page():
     if session.get('logged_in'):
         return redirect(url_for('analysis'))
     return render_template('login.html')
 
+# 3. GİRİŞ KONTROLÜ
 @app.route('/login', methods=['POST'])
 def login():
     user = request.form.get('username')
@@ -40,14 +61,18 @@ def login():
         session['logged_in'] = True
         return redirect(url_for('analysis'))
     else:
+        # Lüks deneyimi bozmamak için basit hata mesajı yerine 
+        # isterseniz login.html'e hata parametresi de dönebiliriz (Geliştirilebilir).
         return "Erişim Reddedildi: Geçersiz Lisans Bilgileri", 401
 
+# 4. ANALİZ MERKEZİ (ŞİFRELİ ALAN)
 @app.route('/analysis')
 def analysis():
     if not session.get('logged_in'):
-        return redirect(url_for('index'))
+        return redirect(url_for('login_page')) # Giriş yapmadıysa oraya yolla
     return render_template('analysis.html')
 
+# 5. [KRİTİK] TARAMA VE KAYDETME MOTORU
 @app.route('/scan_and_save', methods=['POST'])
 def scan_and_save():
     if not session.get('logged_in'):
@@ -60,7 +85,7 @@ def scan_and_save():
     if en_boy_orani is None or ust_alt_orani is None:
         return jsonify({"status": "error", "message": "Tarama verileri eksik geldi."}), 400
     
-    # 3 ANA BAŞLIKTA PREMIUM ANALİZ MOTORU
+    # 3 ANA BAŞLIKTA PREMIUM ANALİZ VE TARZ KONSEPTLERİ
     yuz_tipi = "Belirlenemedi"
     stil_kimligi = ""
     morfoloji_denge = ""
@@ -99,7 +124,7 @@ def scan_and_save():
         kopru_mimarisi = "Anahtarlık (Keyhole) veya Alçak Yerleşimli Köprü. Sert hatları kırmak amacıyla burnu yumuşakça saran ve odak noktasını gözlere çeken tasarımlar."
         oneri = "Güçlü çene hattınızı dengelemek için tam yuvarlak (round), oval veya ince metal çerçeveler tercih edilmiştir. Kalın ve sert kare gözlüklerden uzak durmalısınız."
         
-    # 5. SENARYO: DİKDÖRTGEN YÜZ
+    # 5. SENARYO: DİKDÖRTGEN YÜZ (Diğer tüm oranlar)
     else:
         yuz_tipi = "Dikdörtgen Yüz"
         stil_kimligi = "Bold & Cinematic (Görkemli Sinematik)"
@@ -108,7 +133,7 @@ def scan_and_save():
         oneri = "Yüzün dikey uzunluğunu dengelemek için geniş, büyük (oversized) ve dikey derinliği fazla olan kalın kemik çerçeveler seçilmiştir. Küçük gözlükler yüzünüzü daha da uzun gösterir."
 
     # Veritabanına yeni premium başlıklarla kaydediyoruz
-    conn = sqlite3.connect('opticgrid.db')
+    conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
     c.execute("""INSERT INTO sonuclar (ad, yas, cinsiyet, yuz_tipi, stil_kimligi, morfoloji_denge, kopru_mimarisi, oneri) 
                  VALUES (?,?,?,?,?,?,?,?)""",
@@ -116,7 +141,7 @@ def scan_and_save():
     conn.commit()
     conn.close()
     
-    # Frontend'e ekrana basması için fırlatıyoruz
+    # Frontend'e ekrana basması için jilet gibi JSON fırlatıyoruz
     return jsonify({
         "status": "success",
         "yuz_tipi": yuz_tipi,
@@ -126,10 +151,12 @@ def scan_and_save():
         "oneri": oneri
     })
 
+# 6. GÜVENLİ ÇIKIŞ
 @app.route('/logout')
 def logout():
     session.clear()
     return redirect(url_for('index'))
 
 if __name__ == '__main__':
+    # Localde test için debug=True, Render'da Gunicorn zaten bunu kontrol eder
     app.run(host='0.0.0.0', port=5000, debug=True)
