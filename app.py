@@ -24,13 +24,15 @@ init_db()
 
 @app.route('/')
 def index():
-    if session.get('logged_in'):
-        return redirect(url_for('analysis'))
-    return render_template('login.html')
+    # Siteye ilk girildiğinde o şık gold/krem tanıtım sayfası açılsın
+    return render_template('landing.html')
 
 @app.route('/login_page')
 def login_page():
-    return redirect(url_for('index'))
+    # Tanıtım sayfasındaki butona basıldığında giriş ekranı açılsın
+    if session.get('logged_in'):
+        return redirect(url_for('analysis'))
+    return render_template('login.html')
 
 @app.route('/login', methods=['POST'])
 def login():
