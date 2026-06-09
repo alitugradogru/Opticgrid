@@ -63,9 +63,13 @@ def scan_and_save():
         return jsonify({"status": "error", "message": "Tarama verileri eksik."}), 400
     
     # Sadece Temel Yüz Şekli ve Gözlük Formu Tespiti
+  # Sadece Temel Yüz Şekli ve Gözlük Formu Tespiti
     if 0.92 <= en_boy_orani <= 1.05:
         yuz_tipi = "Yuvarlak Yüz"
         oneri = "Yüzünüze keskinlik katacak kalın köşeli, asetat dikdörtgen veya sert kare çerçeveler seçilmelidir. Yuvarlak formlardan kesinlikle kaçının."
+    elif 1.05 < en_boy_orani < 1.25 and ust_alt_orani > 1.22:
+        yuz_tipi = "Diamond Yüz"
+        oneri = "Geniş elmacık kemiklerinizi dengelemek ve dar alın/çene hattınızı yumuşatmak için kedi gözü (cat-eye), oval veya üst kısmı belirgin kaşlı (clubmaster) modeller tercih edilmelidir."
     elif en_boy_orani >= 1.25:
         yuz_tipi = "Oval Yüz"
         oneri = "Dengeli yüz oranlarınız sayesinde neredeyse her model size yakışır. Aviator, Wayfarer veya modern geometrik çerçeveleri tercih edebilirsiniz."
