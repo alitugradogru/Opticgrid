@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>OpticGrid | Analysis Center</title>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4/face_mesh.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3/camera_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4/face_mesh.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3/camera_utils.js" crossorigin="anonymous"></script>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
         :root { --gold: #C5A059; --cream: #FDFBF7; --text: #2C2C2C; --border: #E5D5B7; }
@@ -26,6 +26,7 @@
         .cam-btn { position: absolute; top: 20px; right: 20px; background: rgba(255,255,255,0.9); border: none; padding: 12px; border-radius: 50%; cursor: pointer; font-size: 1.5rem; z-index: 10; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
         .btn-analyze { background: var(--gold); color: #fff; border: none; padding: 20px 60px; font-size: 1.1rem; font-weight: 600; cursor: pointer; border-radius: 50px; margin: 30px 0; letter-spacing: 3px; text-transform: uppercase; transition: 0.3s; }
         .btn-analyze:active { transform: scale(0.95); }
+        .btn-analyze:disabled { background: #ccc; cursor: not-allowed; }
 
         /* RESULT BOX */
         #result-box { display: none; width: 100%; max-width: 500px; margin: 20px auto; padding: 40px; background: #fff; border-radius: 35px; border: 1px solid var(--border); text-align: left; }
@@ -85,6 +86,7 @@
         const startBtn = document.getElementById('start-btn');
         let currentStream = null;
         let facingMode = 'user';
+        let resultsFound = null;
 
         function initSession() {
             customer.ad = document.getElementById('m-ad').value;
@@ -109,6 +111,7 @@
                 videoElement.srcObject = currentStream;
                 videoElement.play();
                 
+                // Kamera kare akışını gerçek zamanlı MediaPipe'a bağlıyoruz
                 const camera = new Camera(videoElement, {
                     onFrame: async () => { await faceMesh.send({image: videoElement}); }
                 });
@@ -123,57 +126,79 @@
             setupCamera();
         });
 
+        // Tarayıcı tabanlı Gerçek Zamanlı Yüz Tarayıcı Konfigürasyonu
         const faceMesh = new FaceMesh({locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4/${file}`});
         faceMesh.setOptions({ maxNumFaces: 1, refineLandmarks: true, minDetectionConfidence: 0.7 });
-
-        let resultsFound = null;
         faceMesh.onResults((res) => { resultsFound = res; });
 
-        startBtn.addEventListener('click', () => {
+        // BUTONA BASILDIĞINDA GERÇEK VERİLERİ HESAPLAYIP BACKEND'E YOLLAYAN KISIM
+        startBtn.addEventListener('click', async () => {
             if (!resultsFound || !resultsFound.multiFaceLandmarks || resultsFound.multiFaceLandmarks.length === 0) {
-                return alert("Yüz algılanamadı, lütfen kameraya düz bakın.");
+                return alert("Yüz henüz tam algılanamadı, lütfen kameraya düz bakın.");
             }
+
+            startBtn.innerText = "ANALİZ EDİLİYOR...";
+            startBtn.disabled = true;
 
             const lm = resultsFound.multiFaceLandmarks[0];
             const h = videoElement.videoHeight;
             const w = videoElement.videoWidth;
 
+            // Piksel mesafesini hesaplayan yerel formül
             const dist = (p1, p2) => Math.sqrt(Math.pow((p1.x - p2.x)*w, 2) + Math.pow((p1.y - p2.y)*h, 2));
-            const ratio = dist(lm[10], lm[152]) / dist(lm[234], lm[454]);
-
-            let d = {};
-            if (ratio > 1.38) {
-                d = { yuz: "Uzun (Oblong)", form: "Geniş Kare / Wayfarer", kopru: "Alçak Köprü", renk: "Koyu Karamel / Mat Siyah", oneri: "Yüzünüzün uzunluğunu dengelemek için dikey derinliği olan çerçeveler seçmelisiniz." };
-            } else if (ratio < 1.15) {
-                d = { yuz: "Yuvarlak / Kare", form: "Keskin Dikdörtgen", kopru: "Yüksek Düz Köprü", renk: "Lacivert / Antrasit", oneri: "Yüz hatlarınıza daha net bir tanım katmak için köşeli ve sert formlar tercih edilmiştir." };
-            } else {
-                d = { yuz: "Oval (Dengeli)", form: "Aviator / Clubmaster", kopru: "Standart Köprü", renk: "Altın / Bal Köpüğü", oneri: "İdeal yüz oranlarınız sayesinde neredeyse her model size yakışacaktır. Zamansız tasarımlara odaklandık." };
-            }
-
-            // Arayüzü Güncelle
-            document.getElementById('res-yuz').innerText = d.yuz;
-            document.getElementById('res-form').innerText = d.form;
-            document.getElementById('res-kopru').innerText = d.kopru;
-            document.getElementById('res-renk').innerText = d.renk;
-            document.getElementById('res-oneri').innerText = d.oneri;
-            document.getElementById('m-summary').innerText = `Müşteri: ${customer.ad} | Yaş: ${customer.yas}`;
             
-            document.getElementById('result-box').style.display = 'block';
-            document.querySelector('.cam-container').style.display = 'none';
-            startBtn.style.display = 'none';
+            // Gerçek milimetrik oranların tespiti
+            const yuz_uzunlugu = dist(lm[10], lm[152]);
+            const elmacik_genisligi = dist(lm[234], lm[454]);
+            const alin_genisligi = dist(lm[109], landmarks = lm[338]);
+            const cene_genisligi = dist(lm[58], lm[288]);
 
-            // Veritabanına Kaydet
-            fetch('/save_result', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ 
-                    ad: customer.ad, 
-                    yas: customer.yas, 
-                    cinsiyet: customer.cin, 
-                    yuz_tipi: d.yuz, 
-                    oneri: `${d.form} | ${d.renk}` 
-                })
-            });
+            const en_boy_orani = yuz_uzunlugu / elmacik_genisligi;
+            const ust_alt_orani = alin_genisligi / cene_genisligi;
+
+            // Verileri Akıllı Python Servisine Gönderiyoruz
+            try {
+                const response = await fetch('/scan_and_save', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ 
+                        ad: customer.ad, 
+                        yas: customer.yas, 
+                        cinsiyet: customer.cin,
+                        en_boy_orani: en_boy_orani,
+                        ust_alt_orani: ust_alt_orani
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.status === "success") {
+                    // Python'dan dönen gerçek listeyi ekrana basıyoruz
+                    document.getElementById('res-yuz').innerText = result.yuz_tipi;
+                    document.getElementById('res-form').innerText = result.form;
+                    document.getElementById('res-kopru').innerText = result.kopru;
+                    document.getElementById('res-renk').innerText = result.renk;
+                    document.getElementById('res-oneri').innerText = result.oneri;
+                    document.getElementById('m-summary').innerText = `Müşteri: ${customer.ad} | Yaş: ${customer.yas}`;
+                    
+                    // Arayüzü Kapat / Aç
+                    document.getElementById('result-box').style.display = 'block';
+                    document.querySelector('.cam-container').style.display = 'none';
+                    startBtn.style.display = 'none';
+                    
+                    if (currentStream) {
+                        currentStream.getTracks().forEach(track => track.stop());
+                    }
+                } else {
+                    alert("Hata: " + result.message);
+                    startBtn.innerText = "Analizi Başlat";
+                    startBtn.disabled = false;
+                }
+            } catch (error) {
+                alert("Sunucuya bağlanılamadı.");
+                startBtn.innerText = "Analizi Başlat";
+                startBtn.disabled = false;
+            }
         });
     </script>
 </body>
