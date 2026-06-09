@@ -111,7 +111,6 @@
                 videoElement.srcObject = currentStream;
                 videoElement.play();
                 
-                // Kamera kare akışını gerçek zamanlı MediaPipe'a bağlıyoruz
                 const camera = new Camera(videoElement, {
                     onFrame: async () => { await faceMesh.send({image: videoElement}); }
                 });
@@ -126,12 +125,10 @@
             setupCamera();
         });
 
-        // Tarayıcı tabanlı Gerçek Zamanlı Yüz Tarayıcı Konfigürasyonu
         const faceMesh = new FaceMesh({locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4/${file}`});
         faceMesh.setOptions({ maxNumFaces: 1, refineLandmarks: true, minDetectionConfidence: 0.7 });
         faceMesh.onResults((res) => { resultsFound = res; });
 
-        // BUTONA BASILDIĞINDA GERÇEK VERİLERİ HESAPLAYIP BACKEND'E YOLLAYAN KISIM
         startBtn.addEventListener('click', async () => {
             if (!resultsFound || !resultsFound.multiFaceLandmarks || resultsFound.multiFaceLandmarks.length === 0) {
                 return alert("Yüz henüz tam algılanamadı, lütfen kameraya düz bakın.");
@@ -144,19 +141,17 @@
             const h = videoElement.videoHeight;
             const w = videoElement.videoWidth;
 
-            // Piksel mesafesini hesaplayan yerel formül
             const dist = (p1, p2) => Math.sqrt(Math.pow((p1.x - p2.x)*w, 2) + Math.pow((p1.y - p2.y)*h, 2));
             
-            // Gerçek milimetrik oranların tespiti
+            // Gerçek milimetrik oranların tespiti (HATA DÜZELTİLDİ)
             const yuz_uzunlugu = dist(lm[10], lm[152]);
             const elmacik_genisligi = dist(lm[234], lm[454]);
-            const alin_genisligi = dist(lm[109], landmarks = lm[338]);
+            const alin_genisligi = dist(lm[109], lm[338]);
             const cene_genisligi = dist(lm[58], lm[288]);
 
             const en_boy_orani = yuz_uzunlugu / elmacik_genisligi;
             const ust_alt_orani = alin_genisligi / cene_genisligi;
 
-            // Verileri Akıllı Python Servisine Gönderiyoruz
             try {
                 const response = await fetch('/scan_and_save', {
                     method: 'POST',
@@ -173,7 +168,6 @@
                 const result = await response.json();
 
                 if (result.status === "success") {
-                    // Python'dan dönen gerçek listeyi ekrana basıyoruz
                     document.getElementById('res-yuz').innerText = result.yuz_tipi;
                     document.getElementById('res-form').innerText = result.form;
                     document.getElementById('res-kopru').innerText = result.kopru;
@@ -181,7 +175,6 @@
                     document.getElementById('res-oneri').innerText = result.oneri;
                     document.getElementById('m-summary').innerText = `Müşteri: ${customer.ad} | Yaş: ${customer.yas}`;
                     
-                    // Arayüzü Kapat / Aç
                     document.getElementById('result-box').style.display = 'block';
                     document.querySelector('.cam-container').style.display = 'none';
                     startBtn.style.display = 'none';
