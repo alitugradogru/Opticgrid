@@ -156,7 +156,7 @@
             let gonderilecek_en_boy = en_boy_orani;
             let gonderilecek_ust_alt = ust_alt_orani;
 
-            // Alın ve çene genişliği birbirine çok yakınsa yüz köşelidir (Kare veya Dikdörtgen)
+            // Alın ve çene genişliği birbirine çok yakınsa yüz köşelidir (Kare veya Dikdöttgen)
             if (ust_alt_orani < 1.08) {
                 if (en_boy_orani > 1.2) {
                     gonderilecek_en_boy = 1.15; // Python bunu otomatik "Dikdörtgen Yüz" algılayacak
@@ -205,6 +205,11 @@
                         morfoloji = "Mevcut mükemmel simetriyi ve doğal yüz hatlarını korumak esastır. Ekstra bir keskinleştirmeye ihtiyaç duymaz.";
                         kopru = "Standart / Anatomik Köprü. Yüzün doğal dengesini bozmayan, burun kemerine tam oturan tasarımlar idealdir.";
                     } 
+                    else if (result.yuz_tipi === "Diamond Yüz") {
+                        stil = "The Avant-Garde Sculptor (Avangart Heykeltıraş)";
+                        morfoloji = "Dar alın ve dar çene yapısına tezat oluşturan belirgin elmacık kemiklerinin yarattığı yüksek dramatik etkiyi dengelemek hedeflenir.";
+                        kopru = "Kalın veya Belirgin Üst Köprü. Dikkatleri yüzün en geniş yeri olan elmacıklardan alıp göz hizasına çekecek tasarımlar.";
+                    }
                     else if (result.yuz_tipi === "Yuvarlak Yüz") {
                         stil = "Architectural Modernism (Mimari Modernizm)";
                         morfoloji = "Yüzün yumuşak hatlarını dengelemek için net kontrast yaratılmalıdır. Genişlik ve boy oranı yakın olduğundan dikey algı oluşturulur.";
@@ -223,7 +228,7 @@
                     else { // Dikdörtgen Yüz
                         stil = "Bold & Cinematic (Görkemli Sinematik)";
                         morfoloji = "Yüzün dikey uzunluğunu yatay olarak kesmek, yüzü daha kısa ve kompakt göstererek ideal oranlara yaklaştırmak ana stratejidir.";
-                        kopru = "Kalın ve Alçak Yerleşimli Köprü. Yüzü ortadan bölerek dikey derinliği kıran ve uzunluğu illüzyonla azaltan belirgin köprüler.";
+                        kopru = "Kalın ve Alçak Yerleşimli Köprü. Yüzü ortadan bölerek dikey derinliği kıran và uzunluğu illüzyonla azaltan belirgin köprüler.";
                     }
 
                     // Oluşturduğumuz bu zengin açıklamaları tablodaki yerlerine yazdırıyoruz
