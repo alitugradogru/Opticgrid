@@ -11,14 +11,12 @@
         :root { --gold: #C5A059; --cream: #FDFBF7; --text: #2C2C2C; --border: #E5D5B7; }
         body { background: var(--cream); color: var(--text); font-family: 'Poppins', sans-serif; margin: 0; overflow-x: hidden; }
 
-        /* MODAL: Müşteri Kayıt */
         #entry-modal { position: fixed; inset: 0; background: var(--cream); display: flex; align-items: center; justify-content: center; z-index: 9999; }
         .modal-box { background: #fff; padding: 50px 40px; border-radius: 40px; width: 90%; max-width: 400px; border: 1px solid var(--border); text-align: center; }
         .modal-title { font-family: 'Playfair Display', serif; color: var(--gold); font-size: 2rem; margin-bottom: 30px; }
         .modal-box input, .modal-box select { width: 100%; padding: 18px; margin-bottom: 20px; border-radius: 15px; border: 1px solid #eee; background: #fafafa; font-size: 1rem; box-sizing: border-box; }
         .btn-go { background: var(--gold); color: #fff; border: none; padding: 20px; border-radius: 50px; width: 100%; font-weight: 600; cursor: pointer; text-transform: uppercase; letter-spacing: 2px; }
 
-        /* MAIN CONTENT */
         #main-content { display: none; text-align: center; padding: 40px 20px; }
         .vogue-logo { font-family: 'Playfair Display', serif; font-size: 2.5rem; color: var(--gold); letter-spacing: 10px; text-transform: uppercase; margin-bottom: 30px; }
         .cam-container { position: relative; width: 100%; max-width: 450px; margin: 0 auto; border: 10px solid #fff; border-radius: 50px; overflow: hidden; box-shadow: 0 25px 50px rgba(0,0,0,0.1); background: #000; }
@@ -28,7 +26,6 @@
         .btn-analyze:active { transform: scale(0.95); }
         .btn-analyze:disabled { background: #ccc; cursor: not-allowed; }
 
-        /* RESULT BOX */
         #result-box { display: none; width: 100%; max-width: 500px; margin: 20px auto; padding: 40px; background: #fff; border-radius: 35px; border: 1px solid var(--border); text-align: left; }
         .res-title { font-family: 'Playfair Display', serif; color: var(--gold); font-size: 1.8rem; text-align: center; margin-bottom: 30px; }
         table { width: 100%; border-collapse: collapse; }
@@ -137,45 +134,11 @@
             startBtn.innerText = "ANALİZ EDİLİYOR...";
             startBtn.disabled = true;
 
-            const lm = resultsFound.multiFaceLandmarks[0];
+            // Ham koordinat listesini ve kamera boyutlarını doğrudan paketliyoruz
+            const rawLandmarks = resultsFound.multiFaceLandmarks[0];
             const h = videoElement.videoHeight;
             const w = videoElement.videoWidth;
 
-            const dist = (p1, p2) => Math.sqrt(Math.pow((p1.x - p2.x)*w, 2) + Math.pow((p1.y - p2.y)*h, 2));
-            
-            // 1. MediaPipe Noktalarından Milimetrik Ölçümler
-            const yuz_uzunlugu = dist(lm[10], lm[152]);
-            const elmacik_genisligi = dist(lm[234], lm[454]);
-            const alin_genisligi = dist(lm[109], lm[338]);
-            const cene_genisligi = dist(lm[58], lm[288]);
-
-            const en_boy_orani = yuz_uzunlugu / elmacik_genisligi;
-            const ust_alt_orani = alin_genisligi / cene_genisligi;
-
-            // 2. Detaylı Açı ve Kemik Analizi Filtresi (Herkesin Oval Çıkmasını Engeller)
-            let gonderilecek_en_boy = en_boy_orani;
-            let gonderilecek_ust_alt = ust_alt_orani;
-
-            // Alın ve çene genişliği birbirine çok yakınsa yüz köşelidir (Kare veya Dikdöttgen)
-            if (ust_alt_orani < 1.08) {
-                if (en_boy_orani > 1.2) {
-                    gonderilecek_en_boy = 1.15; // Python bunu otomatik "Dikdörtgen Yüz" algılayacak
-                } else {
-                    gonderilecek_en_boy = 1.10; // Python bunu otomatik "Kare Yüz" algılayacak
-                }
-            }
-            // Alın geniş, çene belirgin şekilde darsa bu bir Kalp Yüzdür
-            else if (alin_genisligi > elmacik_genisligi * 0.95 && ust_alt_orani > 1.15) {
-                gonderilecek_en_boy = 1.12;  
-                gonderilecek_ust_alt = 1.20; // Python bunu "Kalp Yüz" algılayacak
-            }
-            // Yüzün eni ve boyu birbirine yakınsa ama çene sivri değilse Yuvarlak Yüzdür
-            else if (en_boy_orani < 1.12 && ust_alt_orani >= 1.08) {
-                gonderilecek_en_boy = 0.98; // Python bunu otomatik "Yuvarlak Yüz" algılayacak
-            }
-            // Sadece bu filtrelerden geçebilen gerçek dengeli yüzler "Oval" kalır.
-
-            // 3. Sunucuya Akıllı Verileri Gönderme
             try {
                 const response = await fetch('/scan_and_save', {
                     method: 'POST',
@@ -184,20 +147,19 @@
                         ad: customer.ad, 
                         yas: customer.yas, 
                         cinsiyet: customer.cin,
-                        en_boy_orani: gonderilecek_en_boy,  
-                        ust_alt_orani: gonderilecek_ust_alt  
+                        image_width: w,
+                        image_height: h,
+                        landmarks: rawLandmarks  // 468 noktanın tamamı backend'e gidiyor
                     })
                 });
 
                 const result = await response.json();
 
                 if (result.status === "success") {
-                    // Temel verileri ekrana basıyoruz
                     document.getElementById('res-yuz').innerText = result.yuz_tipi;
                     document.getElementById('res-oneri').innerText = result.oneri;
                     document.getElementById('m-summary').innerText = `Müşteri: ${customer.ad} | Yaş: ${customer.yas}`;
 
-                    // Yüz tipine göre o boşlukları frontend'de zengin metinlerle dolduruyoruz
                     let stil = "", morfoloji = "", kopru = "";
 
                     if (result.yuz_tipi === "Oval Yüz") {
@@ -223,20 +185,18 @@
                     else if (result.yuz_tipi === "Kare Yüz") {
                         stil = "Soft Tailoring / Quiet Luxury (Sade Lüks)";
                         morfoloji = "Oldukça güçlü ve belirgin olan çene hatlarını, elmacık kemiği köşelerini zarafetle yumuşatmak ve ifadeyi dengelemek hedeflenir.";
-                        kopru = "Anahtarlık (Keyhole) Köprü. Sert hatları kırmak amacıyla burnu yumuşakça saran ve odak noktasını gözlere çeken tasarımlar.";
+                        kopru = "Anahtarlık (Keyhole) Köprü. Sert hatları kırmak amacıyla burnu yumuşatça saran ve odak noktasını gözlere çeken tasarımlar.";
                     } 
-                    else { // Dikdörtgen Yüz
+                    else { 
                         stil = "Bold & Cinematic (Görkemli Sinematik)";
                         morfoloji = "Yüzün dikey uzunluğunu yatay olarak kesmek, yüzü daha kısa ve kompakt göstererek ideal oranlara yaklaştırmak ana stratejidir.";
-                        kopru = "Kalın ve Alçak Yerleşimli Köprü. Yüzü ortadan bölerek dikey derinliği kıran và uzunluğu illüzyonla azaltan belirgin köprüler.";
+                        kopru = "Kalın ve Alçak Yerleşimli Köprü. Yüzü ortadan bölerek dikey derinliği kıran ve uzunluğu illüzyonla azaltan belirgin köprüler.";
                     }
 
-                    // Oluşturduğumuz bu zengin açıklamaları tablodaki yerlerine yazdırıyoruz
                     document.getElementById('res-stil').innerText = stil;
                     document.getElementById('res-morfoloji').innerText = morfoloji;
                     document.getElementById('res-kopru').innerText = kopru;
                     
-                    // Sonuç kutusunu göster, kamerayı kapat
                     document.getElementById('result-box').style.display = 'block';
                     document.querySelector('.cam-container').style.display = 'none';
                     startBtn.style.display = 'none';
