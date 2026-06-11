@@ -1,5 +1,6 @@
 import sqlite3
 import os
+import numpy as np
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify
 
 app = Flask(__name__)
@@ -56,47 +57,76 @@ def scan_and_save():
         return jsonify({"status": "error", "message": "Yetkisiz erişim"}), 403
     
     data = request.json
-    en_boy_orani = data.get('en_boy_orani')
-    ust_alt_orani = data.get('ust_alt_orani')
-    alin_cene_orani = data.get('alin_cene_orani')  # Yeni eklenen oran!
+    landmarks = data.get('landmarks')       # Frontend'den gelen ham 468/478 noktalı dizi
+    image_width = data.get('image_width')   # Kameranın piksel genişliği
+    image_height = data.get('image_height') # Kameranın piksel yüksekliği
     
-    # Gerekli verilerin kontrolü
-    if en_boy_orani is None or ust_alt_orani is None or alin_cene_orani is None:
-        return jsonify({"status": "error", "message": "Tarama verileri (en_boy, ust_alt veya alin_cene) eksik."}), 400
+    # Gerekli ham verilerin kontrolü
+    if landmarks is None or image_width is None or image_height is None:
+        return jsonify({"status": "error", "message": "Ham tarama verileri (landmarks veya boyutlar) eksik."}), 400
     
-    # --- YÜZ TİPİ VE ÖNERİ BELİRLEME MANTIĞI ---
-    if 0.92 <= en_boy_orani <= 1.05:
-        yuz_tipi = "Yuvarlak Yüz"
-        oneri = "Yüzünüze keskinlik katacak kalın köşeli, asetat dikdörtgen veya sert kare çerçeveler seçilmelidir. Yuvarlak formlardan kesinlikle kaçının."
+    # --- MEDIAPIPE LANDMARK KOORDİNATLARINI PİKSELE DÖNÜŞTÜRME YARDIMCI FONKSİYONU ---
+    def get_pt(idx):
+        try:
+            lm = landmarks[idx]
+            # Sözlük (dict) veya nesne (object) yapısına göre x ve y değerlerini güvenli alma
+            if isinstance(lm, dict):
+                x, y = lm.get('x', 0), lm.get('y', 0)
+            else:
+                x, y = getattr(lm, 'x', 0), getattr(lm, 'y', 0)
+            return np.array([x * image_width, y * image_height])
+        except Exception:
+            return np.array([0, 0])
 
-    elif en_boy_orani >= 1.25:
-        if alin_cene_orani <= 1.10:
-            yuz_tipi = "Dikdörtgen Yüz"
-            oneri = "Yüzün dikey uzunluğunu dengelemek için geniş, büyük (oversized) ve dikey derinliği fazla olan kalın kemik çerçeveler seçilmelidir."
-        else:
-            yuz_tipi = "Oval Yüz"
-            oneri = "Dengeli yüz oranlarınız sayesinde neredeyse her model size yakışır. Aviator, Wayfarer veya modern geometrik çerçeveleri tercih edebilirsiniz."
+    # --- MATEMATİKSEL ÖLÇÜM VE ORAN HESAPLAMALARI ---
+    try:
+        # Resmi MediaPipe Face Mesh kritik nokta indeksleri
+        alin_sol, alin_sag = get_pt(54), get_pt(284)
+        elmacik_sol, elmacik_sag = get_pt(234), get_pt(454)
+        cene_sol, cene_sag = get_pt(172), get_pt(397)
+        yuz_ust, yuz_alt = get_pt(10), get_pt(152)
 
-    elif 1.05 < en_boy_orani < 1.25:
-        if ust_alt_orani > 1.22 and alin_cene_orani > 1.15:
-            yuz_tipi = "Diamond Yüz"
-            oneri = "Geniş elmacık kemiklerinizi dengelemek ve dar alın/çene hattınızı yumuşatmak için kedi gözü (cat-eye), oval veya üst kısmı belirgin kaşlı (clubmaster) modeller tercih edilmelidir."
-            
-        elif alin_cene_orani > 1.18:
-            yuz_tipi = "Kalp Yüz"
-            oneri = "Alın genişliğini dengelemek için çerçevesiz (rimless), yarım çerçeveli, transparan tonlardaki veya alt kısmı daha hacimli Pantos modeller seçilmelidir."
-            
-        elif 0.95 <= alin_cene_orani <= 1.05:
+        # Öklid Mesafeleri (Mesafe Hesaplama)
+        W_alin = np.linalg.norm(alin_sol - alin_sag)
+        W_elmacik = np.linalg.norm(elmacik_sol - elmacik_sag)
+        W_cene = np.linalg.norm(cene_sol - cene_sag)
+        H_yuz = np.linalg.norm(yuz_ust - yuz_alt)
+
+        # Algoritmanın İhtiyaç Duyduğu Oranlar
+        en_boy_orani = H_yuz / W_elmacik if W_elmacik != 0 else 1.0
+        alin_cene_orani = W_alin / W_cene if W_cene != 0 else 1.0
+        
+    except Exception as e:
+        return jsonify({"status": "error", "message": f"Koordinat hesaplama hatası: {str(e)}"}), 400
+
+    # --- GEOMETRİK SINIRLARA GÖRE KESİN YÜZ TİPİ BELİRLEME MANTIĞI ---
+    if 0.95 <= en_boy_orani <= 1.05:
+        if 0.95 <= alin_cene_orani <= 1.05:
             yuz_tipi = "Kare Yüz"
             oneri = "Güçlü çene hattınızı yumuşatmak için tam yuvarlak (round), oval veya ince metal çerçeveler tercih edilmelidir. Sert ve kalın kare gözlüklerden uzak durmalısınız."
-            
+        else:
+            yuz_tipi = "Yuvarlak Yüz"
+            oneri = "Yüzünüze keskinlik katacak kalın köşeli, asetat dikdörtgen veya sert kare çerçeveler seçilmelidir. Yuvarlak formlardan kesinlikle kaçının."
+
+    elif en_boy_orani > 1.35:
+        yuz_tipi = "Dikdörtgen Yüz"
+        oneri = "Yüzün dikey uzunluğunu dengelemek için geniş, büyük (oversized) and dikey derinliği fazla olan kalın kemik çerçeveler seçilmelidir."
+
+    else:
+        # Standart yüz aralığı (1.05 - 1.35)
+        if W_alin > W_elmacik and W_alin > W_cene:
+            yuz_tipi = "Kalp Yüz"
+            oneri = "Alın genişliğini dengelemek için çerçevesiz (rimless), yarım çerçeveli, transparan tonlardaki veya alt kısmı daha hacimli Pantos modeller seçilmelidir."
+        elif W_elmacik > W_alin and W_elmacik > W_cene:
+            if alin_cene_orani > 1.15:
+                yuz_tipi = "Diamond Yüz"
+                oneri = "Geniş elmacık kemiklerinizi dengelemek ve dar alın/çene hattınızı yumuşatmak için kedi gözü (cat-eye), oval veya üst kısmı belirgin kaşlı (clubmaster) modeller tercih edilmelidir."
+            else:
+                yuz_tipi = "Oval Yüz"
+                oneri = "Dengeli yüz oranlarınız sayesinde neredeyse her model size yakışır. Aviator, Wayfarer veya modern geometrik çerçeveleri tercih edebilirsiniz."
         else:
             yuz_tipi = "Oval Yüz"
             oneri = "Dengeli yüz oranlarınız sayesinde neredeyse her model size yakışır. Aviator, Wayfarer veya modern geometrik çerçeveleri tercih edebilirsiniz."
-
-    else:
-        yuz_tipi = "Dikdörtgen Yüz"
-        oneri = "Yüzün dikey uzunluğunu dengelemek için geniş, büyük (oversized) ve dikey derinliği fazla olan kalın kemik çerçeveler seçilmelidir."
 
     # --- VERİTABANI KAYIT (Tüm yüz tipleri için ortak alan) ---
     try:
