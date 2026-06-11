@@ -20,7 +20,6 @@
         #main-content { display: none; text-align: center; padding: 40px 20px; }
         .vogue-logo { font-family: 'Playfair Display', serif; font-size: 2.5rem; color: var(--gold); letter-spacing: 10px; text-transform: uppercase; margin-bottom: 30px; }
         
-        /* Kamera Alanı ve Canlı Maske Tasarımı */
         .cam-container { position: relative; width: 100%; max-width: 450px; margin: 0 auto; border: 10px solid #fff; border-radius: 50px; overflow: hidden; box-shadow: 0 25px 50px rgba(0,0,0,0.1); background: #000; }
         video { width: 100%; display: block; transform: scaleX(-1); }
         
@@ -146,12 +145,11 @@
             }
 
             startBtn.disabled = true;
-            overlayBox.style.borderColor = "#00ff00"; // Hizalama başarılı, yeşile döner
+            overlayBox.style.borderColor = "#00ff00"; 
             
             let frameBuffer = [];
             let counter = 3;
             
-            // 3 saniyelik geri sayım ve veri toplama döngüsü
             let countdownInterval = setInterval(() => {
                 if(counter > 0) {
                     startBtn.innerText = `TARANIYOR... (${counter})`;
@@ -159,14 +157,13 @@
                 }
             }, 1000);
 
-            // Saniyede ~5-10 kare olacak şekilde 3 saniye boyunca örnek toplar
             let captureInterval = setInterval(() => {
                 if (resultsFound && resultsFound.multiFaceLandmarks && resultsFound.multiFaceLandmarks.length > 0) {
+                    // Sadece ham landmark listesini array olarak aktar
                     frameBuffer.push(resultsFound.multiFaceLandmarks[0]);
                 }
             }, 200);
 
-            // 3 Saniye Sonunda Veriyi Gönder
             setTimeout(async () => {
                 clearInterval(countdownInterval);
                 clearInterval(captureInterval);
@@ -193,7 +190,7 @@
                             cinsiyet: customer.cin,
                             image_width: w,
                             image_height: h,
-                            frames: frameBuffer  // Gönderilen çoklu kare havuzu!
+                            frames: frameBuffer  
                         })
                     });
 
@@ -229,39 +226,4 @@
                         else if (result.yuz_tipi === "Kare Yüz") {
                             stil = "Soft Tailoring / Quiet Luxury (Sade Lüks)";
                             morfoloji = "Oldukça güçlü ve belirgin olan çene hatlarını, elmacık kemiği köşelerini zarafetle yumuşatmak ve ifadeyi dengelemek hedeflenir.";
-                            kopru = "Anahtarlık (Keyhole) Köprü. Sert hatları kırmak amacıyla burnu yumuşatça saran ve odak noktasını gözlere çeken tasarımlar.";
-                        } 
-                        else { 
-                            stil = "Bold & Cinematic (Görkemli Sinematik)";
-                            morfoloji = "Yüzün dikey uzunluğunu yatay olarak kesmek, yüzü daha kısa ve kompakt göstererek ideal oranlara yaklaştırmak ana stratejidir.";
-                            kopru = "Kalın ve Alçak Yerleşimli Köprü. Yüzü ortadan bölerek dikey derinliği kıran ve uzunluğu illüzyonla azaltan belirgin köprüler.";
-                        }
-
-                        document.getElementById('res-stil').innerText = stil;
-                        document.getElementById('res-morfoloji').innerText = morfoloji;
-                        document.getElementById('res-kopru').innerText = kopru;
-                        
-                        document.getElementById('result-box').style.display = 'block';
-                        document.querySelector('.cam-container').style.display = 'none';
-                        startBtn.style.display = 'none';
-                        
-                        if (currentStream) {
-                            currentStream.getTracks().forEach(track => track.stop());
-                        }
-                    } else {
-                        alert("Hata: " + result.message);
-                        startBtn.innerText = "Analizi Başlat";
-                        startBtn.disabled = false;
-                        overlayBox.style.borderColor = "var(--gold)";
-                    }
-                } catch (error) {
-                    alert("Sunucuya bağlanılamadı.");
-                    startBtn.innerText = "Analizi Başlat";
-                    startBtn.disabled = false;
-                    overlayBox.style.borderColor = "var(--gold)";
-                }
-            }, 3200);
-        });
-    </script>
-</body>
-</html>
+                            kopru = "Anahtarlık (Keyhole) Köprü. Sert hatları kırmak amacıyla burnu yumuşatça saran ve
