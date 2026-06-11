@@ -57,7 +57,7 @@
                 <option value="Erkek">Erkek</option>
                 <option value="Kadın">Kadın</option>
             </select>
-            <button class="btn-go" onclick="initSession()">Analize Geç</button>
+            <button class="btn-go" id="btn-session-start">Analize Geç</button>
         </div>
     </div>
 
@@ -94,21 +94,25 @@
         const videoElement = document.getElementById('input_video');
         const startBtn = document.getElementById('start-btn');
         const overlayBox = document.getElementById('overlay-box');
+        const sessionStartBtn = document.getElementById('btn-session-start');
         let currentStream = null;
         let facingMode = 'user';
         let resultsFound = null;
 
-        function initSession() {
+        // "Analize Geç" butonu kilitlenmesini çözen güvenli dinleyici
+        sessionStartBtn.addEventListener('click', () => {
             customer.ad = document.getElementById('m-ad').value;
             customer.yas = document.getElementById('m-yas').value;
             customer.cin = document.getElementById('m-cin').value;
 
-            if(!customer.ad || !customer.yas) return alert("Lütfen müşteri bilgilerini eksiksiz girin.");
+            if(!customer.ad || !customer.yas) {
+                return alert("Lütfen müşteri bilgilerini eksiksiz girin.");
+            }
             
             document.getElementById('entry-modal').style.display = 'none';
             document.getElementById('main-content').style.display = 'block';
             setupCamera();
-        }
+        });
 
         async function setupCamera() {
             if (currentStream) {
@@ -159,7 +163,6 @@
 
             let captureInterval = setInterval(() => {
                 if (resultsFound && resultsFound.multiFaceLandmarks && resultsFound.multiFaceLandmarks.length > 0) {
-                    // Sadece ham landmark listesini array olarak aktar
                     frameBuffer.push(resultsFound.multiFaceLandmarks[0]);
                 }
             }, 200);
@@ -190,7 +193,7 @@
                             cinsiyet: customer.cin,
                             image_width: w,
                             image_height: h,
-                            frames: frameBuffer  
+                            frames: frameBuffer  // backend'in tam olarak beklediği isim
                         })
                     });
 
@@ -226,4 +229,39 @@
                         else if (result.yuz_tipi === "Kare Yüz") {
                             stil = "Soft Tailoring / Quiet Luxury (Sade Lüks)";
                             morfoloji = "Oldukça güçlü ve belirgin olan çene hatlarını, elmacık kemiği köşelerini zarafetle yumuşatmak ve ifadeyi dengelemek hedeflenir.";
-                            kopru = "Anahtarlık (Keyhole) Köprü. Sert hatları kırmak amacıyla burnu yumuşatça saran ve
+                            kopru = "Anahtarlık (Keyhole) Köprü. Sert hatları kırmak amacıyla burnu yumuşatça saran ve odak noktasını gözlere çeken tasarımlar.";
+                        } 
+                        else { 
+                            stil = "Bold & Cinematic (Görkemli Sinematik)";
+                            morfoloji = "Yüzün dikey uzunluğunu yatay olarak kesmek, yüzü daha kısa ve kompakt göstererek ideal oranlara yaklaştırmak ana stratejidir.";
+                            kopru = "Kalın ve Alçak Yerleşimli Köprü. Yüzü ortadan bölerek dikey derinliği kıran ve uzunluğu illüzyonla azaltan belirgin köprüler.";
+                        }
+
+                        document.getElementById('res-stil').innerText = stil;
+                        document.getElementById('res-morfoloji').innerText = morfoloji;
+                        document.getElementById('res-kopru').innerText = kopru;
+                        
+                        document.getElementById('result-box').style.display = 'block';
+                        document.querySelector('.cam-container').style.display = 'none';
+                        startBtn.style.display = 'none';
+                        
+                        if (currentStream) {
+                            currentStream.getTracks().forEach(track => track.stop());
+                        }
+                    } else {
+                        alert("Hata: " + result.message);
+                        startBtn.innerText = "Analizi Başlat";
+                        startBtn.disabled = false;
+                        overlayBox.style.borderColor = "var(--gold)";
+                    }
+                } catch (error) {
+                    alert("Sunucuya bağlanılamadı.");
+                    startBtn.innerText = "Analizi Başlat";
+                    startBtn.disabled = false;
+                    overlayBox.style.borderColor = "var(--gold)";
+                }
+            }, 3200);
+        });
+    </script>
+</body>
+</html>
