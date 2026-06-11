@@ -66,14 +66,16 @@ def scan_and_save():
         return jsonify({"status": "error", "message": "Yetkisiz erişim"}), 403
     
     data = request.json
-    frames = data.get('frames')             # 3 saniye boyunca toplanan kare havuzu
+    if not data:
+        return jsonify({"status": "error", "message": "JSON verisi gelmedi."}), 400
+        
+    frames = data.get('frames')             
     image_width = data.get('image_width')   
     image_height = data.get('image_height') 
     
     if not frames or image_width is None or image_height is None:
-        return jsonify({"status": "error", "message": "Çoklu tarama verileri eksik."}), 400
+        return jsonify({"status": "error", "message": "Çoklu tarama verileri (frames veya boyutlar) eksik."}), 400
     
-    # Her kare için pikselleri çıkaran yardımcı fonksiyon
     def get_pt(lm_list, idx):
         try:
             lm = lm_list[idx]
@@ -85,14 +87,12 @@ def scan_and_save():
         except Exception:
             return np.array([0, 0])
 
-    # Tüm karelerin ölçüm sonuçlarını biriktireceğimiz listeler
     w_alin_list = []
     w_elmacik_list = []
     w_cene_list = []
     h_yuz_list = []
 
     try:
-        # 3 saniye boyunca kaydedilen tüm kareleri tek tek analiz et
         for lm_list in frames:
             alin_sol, alin_sag = get_pt(lm_list, 54), get_pt(lm_list, 284)
             elmacik_sol, elmacik_sag = get_pt(lm_list, 234), get_pt(lm_list, 454)
@@ -104,8 +104,7 @@ def scan_and_save():
             w_cene_list.append(np.linalg.norm(cene_sol - cene_sag))
             h_yuz_list.append(np.linalg.norm(yuz_ust - yuz_alt))
 
-        # --- AKILLI ORTALAMA ALMA KATMANI ---
-        # Uç değerlerden arındırılmış kararlı ana ölçüler
+        # Kareler havuzunun ortalamasını alarak lens kaymalarını yok ediyoruz
         W_alin = float(np.mean(w_alin_list))
         W_elmacik = float(np.mean(w_elmacik_list))
         W_cene = float(np.mean(w_cene_list))
@@ -116,13 +115,12 @@ def scan_and_save():
         cene_elmacik_orani = W_cene / W_elmacik if W_elmacik != 0 else 1.0
         
     except Exception as e:
-        return jsonify({"status": "error", "message": f"Kararlı hesaplama hatası: {str(e)}"}), 400
+        return jsonify({"status": "error", "message": f"Hesaplama hatası: {str(e)}"}), 400
 
     # ==========================================================
     # EVRENSEL VE TELEFON LENS TOLERANSLI KARAR MOTORU (DİNAMİK)
     # ==========================================================
     
-    # 1. KARE veya DİKDÖRTGEN (Yan hatlar paralel iniyorsa)
     if 0.92 <= alin_elmacik_orani <= 1.05 and 0.90 <= cene_elmacik_orani <= 1.05:
         if en_boy_orani > 1.35:
             yuz_tipi = "Dikdörtgen Yüz"
@@ -131,22 +129,18 @@ def scan_and_save():
             yuz_tipi = "Kare Yüz"
             oneri = "Güçlü çene hattınızı yumuşatmak için tam yuvarlak (round), oval veya ince metal çerçeveler tercih edilmelidir. Sert ve kalın kare gözlüklerden uzak durmalısınız."
 
-    # 2. DIAMOND (ELMAS) YÜZ (Elmacık kemikleri alından ve çeneden net olarak genişse)
     elif W_elmacik > W_alin * 1.02 and W_elmacik > W_cene * 1.02:
         yuz_tipi = "Diamond Yüz"
         oneri = "Geniş elmacık kemiklerinizi dengelemek ve dar alın/çene hattınızı yumuşatmak için kedi gözü (cat-eye), oval veya üst kısmı belirgin kaşlı (clubmaster) modeller tercih edilmelidir."
 
-    # 3. KALP YÜZ (Alın bölgesi en geniş yerse ve aşağı doğru daralıyorsa)
     elif W_alin > W_elmacik * 1.02 and W_alin > W_cene * 1.05:
         yuz_tipi = "Kalp Yüz"
         oneri = "Alın genişliğini dengelemek için çerçevesiz (rimless), yarım çerçeveli, transparan tonlardaki veya alt kısmı daha hacimli Pantos modeller seçilmelidir."
 
-    # 4. YUVARLAK YÜZ (En-boy yakın ama hatlar kare gibi düz değil, kavisliyse)
     elif en_boy_orani <= 1.14 and (alin_elmacik_orani < 0.92 or cene_elmacik_orani < 0.90):
         yuz_tipi = "Yuvarlak Yüz"
         oneri = "Yüzünüze keskinlik katacak kalın köşeli, asetat dikdörtgen veya sert kare çerçeveler seçilmelidir. Yuvarlak formlardan kesinlikle kaçının."
 
-    # 5. OVAL YÜZ (Dengeli yumuşak geçişli yüzler)
     else:
         yuz_tipi = "Oval Yüz"
         oneri = "Dengeli yüz oranlarınız sayesinde neredeyse her model size yakışır. Aviator, Wayfarer veya modern geometrik çerçeveleri tercih edebilirsiniz."
