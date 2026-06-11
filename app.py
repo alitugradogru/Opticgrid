@@ -58,62 +58,58 @@ def scan_and_save():
     data = request.json
     en_boy_orani = data.get('en_boy_orani')
     ust_alt_orani = data.get('ust_alt_orani')
+    alin_cene_orani = data.get('alin_cene_orani')  # Yeni eklenen oran!
     
-    if en_boy_orani is None or ust_alt_orani is None:
-        return jsonify({"status": "error", "message": "Tarama verileri eksik."}), 400
+    # Gerekli verilerin kontrolü
+    if en_boy_orani is None or ust_alt_orani is None or alin_cene_orani is None:
+        return jsonify({"status": "error", "message": "Tarama verileri (en_boy, ust_alt veya alin_cene) eksik."}), 400
     
-    # Sadece Temel Yüz Şekli ve Gözlük Formu Tespiti
- # Öneri: Kodun yukarısında alin_genisligi / cene_genisligi oranını hesapla
-# alin_cene_orani = alin_genisligi / cene_genisligi (Normalde 1.0 civarıdır)
+    # --- YÜZ TİPİ VE ÖNERİ BELİRLEME MANTIĞI ---
+    if 0.92 <= en_boy_orani <= 1.05:
+        yuz_tipi = "Yuvarlak Yüz"
+        oneri = "Yüzünüze keskinlik katacak kalın köşeli, asetat dikdörtgen veya sert kare çerçeveler seçilmelidir. Yuvarlak formlardan kesinlikle kaçının."
 
-if 0.92 <= en_boy_orani <= 1.05:
-    yuz_tipi = "Yuvarlak Yüz"
-    oneri = "Yüzünüze keskinlik katacak kalın köşeli, asetat dikdörtgen veya sert kare çerçeveler seçilmelidir. Yuvarlak formlardan kesinlikle kaçının."
+    elif en_boy_orani >= 1.25:
+        if alin_cene_orani <= 1.10:
+            yuz_tipi = "Dikdörtgen Yüz"
+            oneri = "Yüzün dikey uzunluğunu dengelemek için geniş, büyük (oversized) ve dikey derinliği fazla olan kalın kemik çerçeveler seçilmelidir."
+        else:
+            yuz_tipi = "Oval Yüz"
+            oneri = "Dengeli yüz oranlarınız sayesinde neredeyse her model size yakışır. Aviator, Wayfarer veya modern geometrik çerçeveleri tercih edebilirsiniz."
 
-elif en_boy_orani >= 1.25:
-    # En-boy oranı yüksekse yüz uzundur. 
-    # Alın ve çene genişliği birbirine yakınsa dikdörtgen, çene daralıyorsa ovaldir.
-    if alin_cene_orani <= 1.10:
+    elif 1.05 < en_boy_orani < 1.25:
+        if ust_alt_orani > 1.22 and alin_cene_orani > 1.15:
+            yuz_tipi = "Diamond Yüz"
+            oneri = "Geniş elmacık kemiklerinizi dengelemek ve dar alın/çene hattınızı yumuşatmak için kedi gözü (cat-eye), oval veya üst kısmı belirgin kaşlı (clubmaster) modeller tercih edilmelidir."
+            
+        elif alin_cene_orani > 1.18:
+            yuz_tipi = "Kalp Yüz"
+            oneri = "Alın genişliğini dengelemek için çerçevesiz (rimless), yarım çerçeveli, transparan tonlardaki veya alt kısmı daha hacimli Pantos modeller seçilmelidir."
+            
+        elif 0.95 <= alin_cene_orani <= 1.05:
+            yuz_tipi = "Kare Yüz"
+            oneri = "Güçlü çene hattınızı yumuşatmak için tam yuvarlak (round), oval veya ince metal çerçeveler tercih edilmelidir. Sert ve kalın kare gözlüklerden uzak durmalısınız."
+            
+        else:
+            yuz_tipi = "Oval Yüz"
+            oneri = "Dengeli yüz oranlarınız sayesinde neredeyse her model size yakışır. Aviator, Wayfarer veya modern geometrik çerçeveleri tercih edebilirsiniz."
+
+    else:
         yuz_tipi = "Dikdörtgen Yüz"
         oneri = "Yüzün dikey uzunluğunu dengelemek için geniş, büyük (oversized) ve dikey derinliği fazla olan kalın kemik çerçeveler seçilmelidir."
-    else:
-        yuz_tipi = "Oval Yüz"
-        oneri = "Dengeli yüz oranlarınız sayesinde neredeyse her model size yakışır. Aviator, Wayfarer veya modern geometrik çerçeveleri tercih edebilirsiniz."
 
-elif 1.05 < en_boy_orani < 1.25:
-    # Standart en-boy aralığındaki yüzleri genişlik farklarına göre ayıralım:
+    # --- VERİTABANI KAYIT (Tüm yüz tipleri için ortak alan) ---
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        c = conn.cursor()
+        c.execute("INSERT INTO sonuclar (ad, yas, cinsiyet, yuz_tipi, oneri) VALUES (?,?,?,?,?)",
+                  (data.get('ad'), data.get('yas'), data.get('cinsiyet'), yuz_tipi, oneri))
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        return jsonify({"status": "error", "message": f"Veritabanı hatası: {str(e)}"}), 500
     
-    if ust_alt_orani > 1.22 and alin_cene_orani > 1.15:
-        yuz_tipi = "Diamond Yüz"
-        oneri = "Geniş elmacık kemiklerinizi dengelemek ve dar alın/çene hattınızı yumuşatmak için kedi gözü (cat-eye), oval oder üst kısmı belirgin kaşlı (clubmaster) modeller tercih edilmelidir."
-        
-    elif alin_cene_orani > 1.18:
-        # Alın çeneye göre çok genişse bu kesinlikle kalp yüzdür
-        yuz_tipi = "Kalp Yüz"
-        oneri = "Alın genişliğini dengelemek için çerçevesiz (rimless), yarım çerçeveli, transparan tonlardaki veya alt kısmı daha hacimli Pantos modeller seçilmelidir."
-        
-    elif 0.95 <= alin_cene_orani <= 1.05:
-        # Alın ve çene genişliği birbirine neredeyse eşitse KARE yüzdür
-        yuz_tipi = "Kare Yüz"
-        oneri = "Güçlü çene hattınızı yumuşatmak için tam yuvarlak (round), oval veya ince metal çerçeveler tercih edilmelidir. Sert ve kalın kare gözlüklerden uzak durmalısınız."
-        
-    else:
-        # Yukarıdaki keskin sınırlara girmeyen dengeli yüzler Oval'e evrilir
-        yuz_tipi = "Oval Yüz"
-        oneri = "Dengeli yüz oranlarınız sayesinde neredeyse her model size yakışır. Aviator, Wayfarer veya modern geometrik çerçeveleri tercih edebilirsiniz."
-
-else:
-    # Çok uç bir değer gelirse güvenli liman olarak Dikdörtgen/Uzun ataması
-    yuz_tipi = "Dikdörtgen Yüz"
-    oneri = "Yüzün dikey uzunluğunu dengelemek için geniş, büyük (oversized) ve dikey derinliği fazla olan kalın kemik çerçeveler seçilmelidir."
-
-    conn = sqlite3.connect(DB_NAME)
-    c = conn.cursor()
-    c.execute("INSERT INTO sonuclar (ad, yas, cinsiyet, yuz_tipi, oneri) VALUES (?,?,?,?,?)",
-               (data.get('ad'), data.get('yas'), data.get('cinsiyet'), yuz_tipi, oneri))
-    conn.commit()
-    conn.close()
-    
+    # --- BAŞARILI YANIT ---
     return jsonify({
         "status": "success",
         "yuz_tipi": yuz_tipi,
