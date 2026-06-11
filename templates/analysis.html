@@ -19,11 +19,23 @@
 
         #main-content { display: none; text-align: center; padding: 40px 20px; }
         .vogue-logo { font-family: 'Playfair Display', serif; font-size: 2.5rem; color: var(--gold); letter-spacing: 10px; text-transform: uppercase; margin-bottom: 30px; }
+        
+        /* Kamera Alanı ve Canlı Maske Tasarımı */
         .cam-container { position: relative; width: 100%; max-width: 450px; margin: 0 auto; border: 10px solid #fff; border-radius: 50px; overflow: hidden; box-shadow: 0 25px 50px rgba(0,0,0,0.1); background: #000; }
         video { width: 100%; display: block; transform: scaleX(-1); }
+        
+        .face-overlay {
+            position: absolute; inset: 0;
+            border: 3px dashed var(--gold);
+            border-radius: 50% / 60% 60% 40% 40%;
+            width: 65%; height: 75%;
+            margin: auto; pointer-events: none;
+            box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.4);
+            transition: 0.3s;
+        }
+
         .cam-btn { position: absolute; top: 20px; right: 20px; background: rgba(255,255,255,0.9); border: none; padding: 12px; border-radius: 50%; cursor: pointer; font-size: 1.5rem; z-index: 10; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
         .btn-analyze { background: var(--gold); color: #fff; border: none; padding: 20px 60px; font-size: 1.1rem; font-weight: 600; cursor: pointer; border-radius: 50px; margin: 30px 0; letter-spacing: 3px; text-transform: uppercase; transition: 0.3s; }
-        .btn-analyze:active { transform: scale(0.95); }
         .btn-analyze:disabled { background: #ccc; cursor: not-allowed; }
 
         #result-box { display: none; width: 100%; max-width: 500px; margin: 20px auto; padding: 40px; background: #fff; border-radius: 35px; border: 1px solid var(--border); text-align: left; }
@@ -54,6 +66,7 @@
         <div class="vogue-logo">OpticGrid</div>
         <div class="cam-container">
             <video id="input_video" playsinline></video>
+            <div class="face-overlay" id="overlay-box"></div>
             <button id="cam-switch" class="cam-btn">📸</button>
         </div>
         <button id="start-btn" class="btn-analyze">Analizi Başlat</button>
@@ -81,6 +94,7 @@
         let customer = {};
         const videoElement = document.getElementById('input_video');
         const startBtn = document.getElementById('start-btn');
+        const overlayBox = document.getElementById('overlay-box');
         let currentStream = null;
         let facingMode = 'user';
         let resultsFound = null;
@@ -128,93 +142,125 @@
 
         startBtn.addEventListener('click', async () => {
             if (!resultsFound || !resultsFound.multiFaceLandmarks || resultsFound.multiFaceLandmarks.length === 0) {
-                return alert("Yüz henüz tam algılanamadı, lütfen kameraya düz bakın.");
+                return alert("Yüz henüz tam algılanamadı, lütfen maskenin içine hizalayıp düz bakın.");
             }
 
-            startBtn.innerText = "ANALİZ EDİLİYOR...";
             startBtn.disabled = true;
+            overlayBox.style.borderColor = "#00ff00"; // Hizalama başarılı, yeşile döner
+            
+            let frameBuffer = [];
+            let counter = 3;
+            
+            // 3 saniyelik geri sayım ve veri toplama döngüsü
+            let countdownInterval = setInterval(() => {
+                if(counter > 0) {
+                    startBtn.innerText = `TARANIYOR... (${counter})`;
+                    counter--;
+                }
+            }, 1000);
 
-            // Ham koordinat listesini ve kamera boyutlarını doğrudan paketliyoruz
-            const rawLandmarks = resultsFound.multiFaceLandmarks[0];
-            const h = videoElement.videoHeight;
-            const w = videoElement.videoWidth;
+            // Saniyede ~5-10 kare olacak şekilde 3 saniye boyunca örnek toplar
+            let captureInterval = setInterval(() => {
+                if (resultsFound && resultsFound.multiFaceLandmarks && resultsFound.multiFaceLandmarks.length > 0) {
+                    frameBuffer.push(resultsFound.multiFaceLandmarks[0]);
+                }
+            }, 200);
 
-            try {
-                const response = await fetch('/scan_and_save', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ 
-                        ad: customer.ad, 
-                        yas: customer.yas, 
-                        cinsiyet: customer.cin,
-                        image_width: w,
-                        image_height: h,
-                        landmarks: rawLandmarks  // 468 noktanın tamamı backend'e gidiyor
-                    })
-                });
-
-                const result = await response.json();
-
-                if (result.status === "success") {
-                    document.getElementById('res-yuz').innerText = result.yuz_tipi;
-                    document.getElementById('res-oneri').innerText = result.oneri;
-                    document.getElementById('m-summary').innerText = `Müşteri: ${customer.ad} | Yaş: ${customer.yas}`;
-
-                    let stil = "", morfoloji = "", kopru = "";
-
-                    if (result.yuz_tipi === "Oval Yüz") {
-                        stil = "The Timeless Icon (Zamansız İkon)";
-                        morfoloji = "Mevcut mükemmel simetriyi ve doğal yüz hatlarını korumak esastır. Ekstra bir keskinleştirmeye ihtiyaç duymaz.";
-                        kopru = "Standart / Anatomik Köprü. Yüzün doğal dengesini bozmayan, burun kemerine tam oturan tasarımlar idealdir.";
-                    } 
-                    else if (result.yuz_tipi === "Diamond Yüz") {
-                        stil = "The Avant-Garde Sculptor (Avangart Heykeltıraş)";
-                        morfoloji = "Dar alın ve dar çene yapısına tezat oluşturan belirgin elmacık kemiklerinin yarattığı yüksek dramatik etkiyi dengelemek hedeflenir.";
-                        kopru = "Kalın veya Belirgin Üst Köprü. Dikkatleri yüzün en geniş yeri olan elmacıklardan alıp göz hizasına çekecek tasarımlar.";
-                    }
-                    else if (result.yuz_tipi === "Yuvarlak Yüz") {
-                        stil = "Architectural Modernism (Mimari Modernizm)";
-                        morfoloji = "Yüzün yumuşak hatlarını dengelemek için net kontrast yaratılmalıdır. Genişlik ve boy oranı yakın olduğundan dikey algı oluşturulur.";
-                        kopru = "Yüksek ve Düz Yerleşimli Köprü. Gözleri daha ayrık, burnu daha uzun ve yüzü daha ince gösteren hatlar tercih edilmelidir.";
-                    } 
-                    else if (result.yuz_tipi === "Kalp Yüz") {
-                        stil = "Minimalist Avant-Garde (Minimalist Avangart)";
-                        morfoloji = "Geniş alın bölgesini dengelerken, aşağıya doğru daralan ve sivrileşen çene yapısını daha orantılı göstermek amaçlanır.";
-                        kopru = "İnce Metal / Belirsiz Köprü. Alındaki görsel ağırlığı aşağıya çekerek dikkati burun ve çene hattına dağıtan tasarımlar.";
-                    } 
-                    else if (result.yuz_tipi === "Kare Yüz") {
-                        stil = "Soft Tailoring / Quiet Luxury (Sade Lüks)";
-                        morfoloji = "Oldukça güçlü ve belirgin olan çene hatlarını, elmacık kemiği köşelerini zarafetle yumuşatmak ve ifadeyi dengelemek hedeflenir.";
-                        kopru = "Anahtarlık (Keyhole) Köprü. Sert hatları kırmak amacıyla burnu yumuşatça saran ve odak noktasını gözlere çeken tasarımlar.";
-                    } 
-                    else { 
-                        stil = "Bold & Cinematic (Görkemli Sinematik)";
-                        morfoloji = "Yüzün dikey uzunluğunu yatay olarak kesmek, yüzü daha kısa ve kompakt göstererek ideal oranlara yaklaştırmak ana stratejidir.";
-                        kopru = "Kalın ve Alçak Yerleşimli Köprü. Yüzü ortadan bölerek dikey derinliği kıran ve uzunluğu illüzyonla azaltan belirgin köprüler.";
-                    }
-
-                    document.getElementById('res-stil').innerText = stil;
-                    document.getElementById('res-morfoloji').innerText = morfoloji;
-                    document.getElementById('res-kopru').innerText = kopru;
-                    
-                    document.getElementById('result-box').style.display = 'block';
-                    document.querySelector('.cam-container').style.display = 'none';
-                    startBtn.style.display = 'none';
-                    
-                    if (currentStream) {
-                        currentStream.getTracks().forEach(track => track.stop());
-                    }
-                } else {
-                    alert("Hata: " + result.message);
+            // 3 Saniye Sonunda Veriyi Gönder
+            setTimeout(async () => {
+                clearInterval(countdownInterval);
+                clearInterval(captureInterval);
+                
+                if(frameBuffer.length === 0) {
+                    alert("Tarama sırasında yüz kaybedildi. Lütfen tekrar deneyin.");
                     startBtn.innerText = "Analizi Başlat";
                     startBtn.disabled = false;
+                    overlayBox.style.borderColor = "var(--gold)";
+                    return;
                 }
 
-            } catch (error) {
-                alert("Sunucuya bağlanılamadı.");
-                startBtn.innerText = "Analizi Başlat";
-                startBtn.disabled = false;
-            }
+                startBtn.innerText = "HESAPLANIYOR...";
+                const h = videoElement.videoHeight;
+                const w = videoElement.videoWidth;
+
+                try {
+                    const response = await fetch('/scan_and_save', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ 
+                            ad: customer.ad, 
+                            yas: customer.yas, 
+                            cinsiyet: customer.cin,
+                            image_width: w,
+                            image_height: h,
+                            frames: frameBuffer  // Gönderilen çoklu kare havuzu!
+                        })
+                    });
+
+                    const result = await response.json();
+
+                    if (result.status === "success") {
+                        document.getElementById('res-yuz').innerText = result.yuz_tipi;
+                        document.getElementById('res-oneri').innerText = result.oneri;
+                        document.getElementById('m-summary').innerText = `Müşteri: ${customer.ad} | Yaş: ${customer.yas}`;
+
+                        let stil = "", morfoloji = "", kopru = "";
+
+                        if (result.yuz_tipi === "Oval Yüz") {
+                            stil = "The Timeless Icon (Zamansız İkon)";
+                            morfoloji = "Mevcut mükemmel simetriyi ve doğal yüz hatlarını korumak esastır. Ekstra bir keskinleştirmeye ihtiyaç duymaz.";
+                            kopru = "Standart / Anatomik Köprü. Yüzün doğal dengesini bozmayan, burun kemerine tam oturan tasarımlar idealdir.";
+                        } 
+                        else if (result.yuz_tipi === "Diamond Yüz") {
+                            stil = "The Avant-Garde Sculptor (Avangart Heykeltıraş)";
+                            morfoloji = "Dar alın ve dar çene yapısına tezat oluşturan belirgin elmacık kemiklerinin yarattığı yüksek dramatik etkiyi dengelemek hedeflenir.";
+                            kopru = "Kalın veya Belirgin Üst Köprü. Dikkatleri yüzün en geniş yeri olan elmacıklardan alıp göz hizasına çekecek tasarımlar.";
+                        }
+                        else if (result.yuz_tipi === "Yuvarlak Yüz") {
+                            stil = "Architectural Modernism (Mimari Modernizm)";
+                            morfoloji = "Yüzün yumuşak hatlarını dengelemek için net kontrast yaratılmalıdır. Genişlik ve boy oranı yakın olduğundan dikey algı oluşturulur.";
+                            kopru = "Yüksek ve Düz Yerleşimli Köprü. Gözleri daha ayrık, burnu daha uzun ve yüzü daha ince gösteren hatlar tercih edilmelidir.";
+                        } 
+                        else if (result.yuz_tipi === "Kalp Yüz") {
+                            stil = "Minimalist Avant-Garde (Minimalist Avangart)";
+                            morfoloji = "Geniş alın bölgesini dengelerken, aşağıya doğru daralan ve sivrileşen çene yapısını daha orantılı göstermek amaçlanır.";
+                            kopru = "İnce Metal / Belirsiz Köprü. Alındaki görsel ağırlığı aşağıya çekerek dikkati burun ve çene hattına dağıtan tasarımlar.";
+                        } 
+                        else if (result.yuz_tipi === "Kare Yüz") {
+                            stil = "Soft Tailoring / Quiet Luxury (Sade Lüks)";
+                            morfoloji = "Oldukça güçlü ve belirgin olan çene hatlarını, elmacık kemiği köşelerini zarafetle yumuşatmak ve ifadeyi dengelemek hedeflenir.";
+                            kopru = "Anahtarlık (Keyhole) Köprü. Sert hatları kırmak amacıyla burnu yumuşatça saran ve odak noktasını gözlere çeken tasarımlar.";
+                        } 
+                        else { 
+                            stil = "Bold & Cinematic (Görkemli Sinematik)";
+                            morfoloji = "Yüzün dikey uzunluğunu yatay olarak kesmek, yüzü daha kısa ve kompakt göstererek ideal oranlara yaklaştırmak ana stratejidir.";
+                            kopru = "Kalın ve Alçak Yerleşimli Köprü. Yüzü ortadan bölerek dikey derinliği kıran ve uzunluğu illüzyonla azaltan belirgin köprüler.";
+                        }
+
+                        document.getElementById('res-stil').innerText = stil;
+                        document.getElementById('res-morfoloji').innerText = morfoloji;
+                        document.getElementById('res-kopru').innerText = kopru;
+                        
+                        document.getElementById('result-box').style.display = 'block';
+                        document.querySelector('.cam-container').style.display = 'none';
+                        startBtn.style.display = 'none';
+                        
+                        if (currentStream) {
+                            currentStream.getTracks().forEach(track => track.stop());
+                        }
+                    } else {
+                        alert("Hata: " + result.message);
+                        startBtn.innerText = "Analizi Başlat";
+                        startBtn.disabled = false;
+                        overlayBox.style.borderColor = "var(--gold)";
+                    }
+                } catch (error) {
+                    alert("Sunucuya bağlanılamadı.");
+                    startBtn.innerText = "Analizi Başlat";
+                    startBtn.disabled = false;
+                    overlayBox.style.borderColor = "var(--gold)";
+                }
+            }, 3200);
         });
     </script>
 </body>
