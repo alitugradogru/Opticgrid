@@ -104,7 +104,7 @@ def scan_and_save():
             w_cene_list.append(np.linalg.norm(cene_sol - cene_sag))
             h_yuz_list.append(np.linalg.norm(yuz_ust - yuz_alt))
 
-        # Kareler havuzunun ortalamasını alarak lens kaymalarını yok ediyoruz
+        # 3 saniyelik havuzun ortalamasını alarak lens bükülmesini yok ediyoruz
         W_alin = float(np.mean(w_alin_list))
         W_elmacik = float(np.mean(w_elmacik_list))
         W_cene = float(np.mean(w_cene_list))
@@ -143,7 +143,7 @@ def scan_and_save():
 
     else:
         yuz_tipi = "Oval Yüz"
-        oneri = "Dengeli yüz oranlarınız sayesinde neredeyse her model size yakışır. Aviator, Wayfarer veya modern geometrik çerçeveleri tercih edebilirsiniz."
+        oneri = "Dengeli yüz oranlarınız sayesinde neredeyse her model size yakışır. Aviator, Wayfarer veya modern geometric çerçeveleri tercih edebilirsiniz."
 
     # --- VERİTABANI KAYIT ---
     try:
