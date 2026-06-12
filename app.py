@@ -1,15 +1,26 @@
 import sqlite3
 import os
+import json
+import base64
+import csv
+from io import StringIO
 import numpy as np
-from flask import Flask, render_template, request, redirect, url_for, session, jsonify
+import requests
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify, make_response
 
 app = Flask(__name__)
 app.secret_key = "tugra_premium_key_2026"
 
+# KULLANICI ADI VE ŞİFRELER (KAYA GİBİ GÜVENLİ)
 ADMIN_USER = "tugra"
 ADMIN_PASS = "1234"
 
 DB_NAME = 'opticgrid.db'
+
+# GITHUB CONFIGURATION (Render sıfırlama sorununu çözen kalıcı sistem)
+GITHUB_TOKEN = ""  # Örn: "ghp_xxxxxxxxxxxx"
+GITHUB_REPO = ""   # Örn: "alitudradogru/Opticgrid"
+FILE_PATH = "templates/arsiv.json"
 
 def init_db():
     conn = sqlite3.connect(DB_NAME)
@@ -22,6 +33,44 @@ def init_db():
     conn.close()
 
 init_db()
+
+def sync_github_backup(action="save", ad=None, yas=None, cinsiyet=None, yuz_tipi=None, oneri=None, delete_name=None):
+    """Verileri hem kaydederken hem de silerken GitHub reponla senkronize eder."""
+    if not GITHUB_TOKEN or not GITHUB_REPO:
+        return
+    
+    url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{FILE_PATH}"
+    headers = {"Authorization": f"token {GITHUB_TOKEN}", "Accept": "application/vnd.github.v3+json"}
+    
+    current_content = []
+    sha = None
+    r = requests.get(url, headers=headers)
+    
+    if r.status_code == 200:
+        res_json = r.json()
+        sha = res_json.get('sha')
+        content_decoded = base64.b64decode(res_json.get('content')).decode('utf-8')
+        try:
+            current_content = json.loads(content_decoded)
+        except:
+            current_content = []
+            
+    if action == "save":
+        yeni_data = {"ad": ad, "yas": yas, "cinsiyet": cinsiyet, "yuz_tipi": yuz_tipi, "oneri": oneri}
+        current_content.insert(0, yeni_data)
+        msg = f"OpticGrid: {ad} arşive eklendi."
+    elif action == "delete" and delete_name:
+        current_content = [m for m in current_content if m.get('ad') != delete_name]
+        msg = f"OpticGrid: {delete_name} arşivden silindi."
+        
+    updated_bytes = json.dumps(current_content, ensure_ascii=False, indent=4).encode('utf-8')
+    updated_b64 = base64.b64encode(updated_bytes).decode('utf-8')
+    
+    payload = {"message": msg, "content": updated_b64, "branch": "main"}
+    if sha:
+        payload["sha"] = sha
+        
+    requests.put(url, headers=headers, json=payload)
 
 @app.route('/')
 def index():
@@ -45,20 +94,88 @@ def login():
 
 @app.route('/analysis')
 def analysis():
+    # KORUMA DUVARI
     if not session.get('logged_in'):
-        return redirect(url_for('index'))
+        return redirect(url_for('login_page'))
     return render_template('analysis.html')
 
 @app.route('/admin')
 def admin():
+    # KORUMA DUVARI
     if not session.get('logged_in'):
         return redirect(url_for('login_page'))
+        
+    # GitHub entegrasyonu aktifse verileri doğrudan repondaki kalıcı JSON'dan oku
+    if GITHUB_TOKEN and GITHUB_REPO:
+        url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{FILE_PATH}"
+        headers = {"Authorization": f"token {GITHUB_TOKEN}", "Accept": "application/vnd.github.v3+json"}
+        r = requests.get(url, headers=headers)
+        if r.status_code == 200:
+            res_json = r.json()
+            content_decoded = base64.b64decode(res_json.get('content')).decode('utf-8')
+            try:
+                musteriler = json.loads(content_decoded)
+                # admin.html şablonu (id, ad, yas, cin, yuz, oneri, tarih) beklediği için simüle ediyoruz
+                musteri_listesi = [(idx, m['ad'], m['yas'], m['cinsiyet'], m['yuz_tipi'], m['oneri'], 'Kalıcı Bulut') for idx, m in enumerate(musteriler)]
+                return render_template('admin.html', musteriler=musteri_listesi)
+            except:
+                pass
+
+    # GitHub bağlı değilse yerel SQLite veritabanından çek
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
-    c.execute("SELECT ad, yas, cinsiyet, yuz_tipi, oneri, tarih FROM sonuclar ORDER BY tarih DESC")
+    c.execute("SELECT id, ad, yas, cinsiyet, yuz_tipi, oneri, tarih FROM sonuclar ORDER BY tarih DESC")
     musteriler = c.fetchall()
     conn.close()
     return render_template('admin.html', musteriler=musteriler)
+
+@app.route('/delete_customer/<int:cust_id>', methods=['POST', 'GET'])
+def delete_customer(cust_id):
+    """Müşteriyi hem yerel DB'den hem de GitHub kalıcı arşivinden siler."""
+    if not session.get('logged_in'):
+        return "Yetkisiz İşlem", 403
+        
+    conn = sqlite3.connect(DB_NAME)
+    c = conn.cursor()
+    c.execute("SELECT ad FROM sonuclar WHERE id = ?", (cust_id,))
+    row = c.fetchone()
+    
+    if row:
+        customer_name = row[0]
+        c.execute("DELETE FROM sonuclar WHERE id = ?", (cust_id,))
+        conn.commit()
+        conn.close()
+        # GitHub arşivinden de temizle
+        try:
+            sync_github_backup(action="delete", delete_name=customer_name)
+        except:
+            pass
+    else:
+        conn.close()
+        
+    return redirect(url_for('admin'))
+
+@app.route('/export_csv')
+def export_csv():
+    """Tüm arşivi tek tıkla Excel uyumlu mükemmel bir CSV dosyası olarak bilgisayara indirir."""
+    if not session.get('logged_in'):
+        return "Yetkisiz İşlem", 403
+        
+    conn = sqlite3.connect(DB_NAME)
+    c = conn.cursor()
+    c.execute("SELECT ad, yas, cinsiyet, yuz_tipi, oneri, tarih FROM sonuclar ORDER BY tarih DESC")
+    rows = c.fetchall()
+    conn.close()
+    
+    si = StringIO()
+    cw = csv.writer(si)
+    cw.writerow(['Müşteri Ad Soyad', 'Yaş', 'Cinsiyet', 'Yüz Geometrisi', 'Öneri Raporu', 'Tarama Tarihi'])
+    cw.writerows(rows)
+    
+    output = make_response(si.getvalue())
+    output.headers["Content-Disposition"] = "attachment; filename=opticgrid_musteri_arsivi.csv"
+    output.headers["Content-type"] = "text/csv; charset=utf-8"
+    return output
 
 @app.route('/scan_and_save', methods=['POST'])
 def scan_and_save():
@@ -74,7 +191,7 @@ def scan_and_save():
     image_height = data.get('image_height') 
     
     if not frames or image_width is None or image_height is None:
-        return jsonify({"status": "error", "message": "Çoklu tarama verileri (frames veya boyutlar) eksik."}), 400
+        return jsonify({"status": "error", "message": "Çoklu tarama verileri eksik."}), 400
     
     def get_pt(lm_list, idx):
         try:
@@ -104,7 +221,6 @@ def scan_and_save():
             w_cene_list.append(np.linalg.norm(cene_sol - cene_sag))
             h_yuz_list.append(np.linalg.norm(yuz_ust - yuz_alt))
 
-        # 3 saniyelik havuzun ortalamasını alarak lens bükülmesini yok ediyoruz
         W_alin = float(np.mean(w_alin_list))
         W_elmacik = float(np.mean(w_elmacik_list))
         W_cene = float(np.mean(w_cene_list))
@@ -117,11 +233,7 @@ def scan_and_save():
     except Exception as e:
         return jsonify({"status": "error", "message": "Hesaplama hatası: " + str(e)}), 400
 
-    # ==========================================================
-    # EVRENSEL VE TELEFON LENS TOLERANSLI KARAR MOTORU (DÜZELTİLDİ)
-    # ==========================================================
-    
-    # 1. KARE VE DİKDÖRTGEN: Alın, elmacık ve çene genişlikleri birbirine çok yakınsa yüz köşelidir.
+    # LENS TOLERANSLI EVRENSEL KARAR MOTORU
     if 0.92 <= alin_elmacik_orani <= 1.05 and 0.88 <= cene_elmacik_orani <= 1.05:
         if en_boy_orani > 1.30:
             yuz_tipi = "Dikdörtgen Yüz"
@@ -130,32 +242,28 @@ def scan_and_save():
             yuz_tipi = "Kare Yüz"
             oneri = "Güçlü çene hattınızı yumuşatmak için tam yuvarlak (round), oval veya ince metal çerçeveler tercih edilmelidir. Sert ve kalın kare gözlüklerden uzak durmalısınız."
 
-    # 2. DIAMOND (ELMAS): Elmacık kemikleri, hem alından hem de çeneden belirgin şekilde belirgin ve genişse.
     elif W_elmacik >= W_alin * 1.06 and W_elmacik >= W_cene * 1.06:
         yuz_tipi = "Diamond Yüz"
         oneri = "Geniş elmacık kemiklerinizi dengelemek ve dar alın/çene hattınızı yumuşatmak için kedi gözü (cat-eye), oval veya üst kısmı belirgin kaşlı (clubmaster) modeller tercih edilmelidir."
 
-    # 3. KALP: Alın geniş, elmacıklar normal, çene ise alna göre çok darsa.
     elif W_alin > W_elmacik * 0.98 and W_alin >= W_cene * 1.07:
         yuz_tipi = "Kalp Yüz"
         oneri = "Alın genişliğini dengelemek için çerçevesiz (rimless), yarım çerçeveli, transparan tonlardaki veya alt kısmı daha hacimli Pantos modeller seçilmelidir."
 
-    # 4. YUVARLAK: Yüzün eni boyu birbirine yakınsa ve hatlar daireselse.
     elif en_boy_orani <= 1.12 and 0.88 <= alin_elmacik_orani <= 0.96:
         yuz_tipi = "Yuvarlak Yüz"
         oneri = "Yüzünüze keskinlik katacak kalın köşeli, asetat dikdörtgen veya sert kare çerçeveler seçilmelidir. Yuvarlak formlardan kesinlikle kaçının."
 
-    # 5. OVAL: Yukarıdaki hiçbir keskin şarta takılmayan, ideal ve dengeli oranlar.
     else:
         yuz_tipi = "Oval Yüz"
         oneri = "Dengeli yüz oranlarınız sayesinde neredeyse her model size yakışır. Aviator, Wayfarer veya modern geometrik çerçeveleri tercih edebilirsiniz."
 
-    # --- VERİTABANI KAYIT ---
-    try:
-        ad_veri = data.get('ad', 'Bilinmeyen Müşteri')
-        yas_veri = data.get('yas', '0')
-        cinsiyet_veri = data.get('cinsiyet', 'Belirtilmemiş')
+    ad_veri = data.get('ad', 'Bilinmeyen Müşteri')
+    yas_veri = data.get('yas', '0')
+    cinsiyet_veri = data.get('cinsiyet', 'Belirtilmemiş')
 
+    # VERİTABANI YEREL KAYIT
+    try:
         conn = sqlite3.connect(DB_NAME)
         c = conn.cursor()
         c.execute("INSERT INTO sonuclar (ad, yas, cinsiyet, yuz_tipi, oneri) VALUES (?,?,?,?,?)",
@@ -165,11 +273,13 @@ def scan_and_save():
     except Exception as e:
         return jsonify({"status": "error", "message": "Veritabanı hatası: " + str(e)}), 500
     
-    return jsonify({
-        "status": "success",
-        "yuz_tipi": yuz_tipi,
-        "oneri": oneri
-    })
+    # GITHUB KALICI SENKRONİZASYON
+    try:
+        sync_github_backup(action="save", ad=ad_veri, yas=yas_veri, cinsiyet=cinsiyet_veri, yuz_tipi=yuz_tipi, oneri=oneri)
+    except:
+        pass
+    
+    return jsonify({"status": "success", "yuz_tipi": yuz_tipi, "oneri": oneri})
 
 @app.route('/logout')
 def logout():
