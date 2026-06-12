@@ -6,7 +6,7 @@
     <title>OpticGrid | Analysis Center</title>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4/face_mesh.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3/camera_utils.js" crossorigin="anonymous"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght=700&family=Poppins:wght=300;400;600&display=swap" rel="stylesheet">
     <style>
         :root { --gold: #C5A059; --cream: #FDFBF7; --text: #2C2C2C; --border: #E5D5B7; }
         body { background: var(--cream); color: var(--text); font-family: 'Poppins', sans-serif; margin: 0; overflow-x: hidden; }
@@ -99,7 +99,6 @@
         let facingMode = 'user';
         let resultsFound = null;
 
-        // "Analize Geç" butonu kilitlenmesini çözen güvenli dinleyici
         sessionStartBtn.addEventListener('click', () => {
             customer.ad = document.getElementById('m-ad').value;
             customer.yas = document.getElementById('m-yas').value;
@@ -193,7 +192,7 @@
                             cinsiyet: customer.cin,
                             image_width: w,
                             image_height: h,
-                            frames: frameBuffer  // backend'in tam olarak beklediği isim
+                            frames: frameBuffer  
                         })
                     });
 
@@ -229,12 +228,17 @@
                         else if (result.yuz_tipi === "Kare Yüz") {
                             stil = "Soft Tailoring / Quiet Luxury (Sade Lüks)";
                             morfoloji = "Oldukça güçlü ve belirgin olan çene hatlarını, elmacık kemiği köşelerini zarafetle yumuşatmak ve ifadeyi dengelemek hedeflenir.";
-                            kopru = "Anahtarlık (Keyhole) Köprü. Sert hatları kırmak amacıyla burnu yumuşatça saran ve odak noktasını gözlere çeken tasarımlar.";
+                            kopru = "Anahtarlık (Keyhole) Köprü. Sert hatları kırmak amacıyla burnu yumuşakça saran ve odak noktasını gözlere çeken tasarımlar.";
                         } 
-                        else { 
+                        else if (result.yuz_tipi === "Dikdörtgen Yüz") { 
                             stil = "Bold & Cinematic (Görkemli Sinematik)";
                             morfoloji = "Yüzün dikey uzunluğunu yatay olarak kesmek, yüzü daha kısa ve kompakt göstererek ideal oranlara yaklaştırmak ana stratejidir.";
                             kopru = "Kalın ve Alçak Yerleşimli Köprü. Yüzü ortadan bölerek dikey derinliği kıran ve uzunluğu illüzyonla azaltan belirgin köprüler.";
+                        }
+                        else {
+                            stil = "The Timeless Icon (Zamansız İkon)";
+                            morfoloji = "Genel yüz simetrisini koruyan ve doğal dengeleri ön plana çıkaran premium çizgiler.";
+                            kopru = "Standart / Anatomik Yerleşimli Köprüler.";
                         }
 
                         document.getElementById('res-stil').innerText = stil;
